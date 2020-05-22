@@ -1,0 +1,119 @@
+version 4
+
+// Informations générales
+
+// DEFINITION DU SEGMENTS
+
+// Thorax
+	 segment Thorax
+     translations xyz
+     rotations	xyz
+     ranges
+            -2 2
+            -2 2
+            -2 2
+            -2*pi 2*pi
+            -2*pi 2*pi
+            -2*pi 2*pi
+     mass 1
+     inertia
+		  1 0 0 
+		  0 1 0
+		  0 0 1
+		com 0 .5 0 
+		mesh  .2  .2  .2
+		mesh  .2 -.2  .2
+		mesh  .2 -.2 -.2
+		mesh  .2  .2 -.2
+		mesh -.2  .2 -.2
+		mesh -.2  .2  .2
+		mesh -.2 -.2  .2
+		mesh -.2 -.2 -.2
+		mesh -.2  .2 -.2
+		mesh  .2  .2 -.2
+		mesh  .2 -.2 -.2
+		mesh -.2 -.2 -.2
+		mesh -.2 -.2  .2
+		mesh  .2 -.2  .2
+		mesh  .2  .2  .2
+		mesh -.2  .2  .2
+		mesh  .2  .2  .2
+		mesh  .2  .2 -.2
+	endsegment
+
+/*
+// Thorax2
+	 segment Thorax2
+     parent Thorax
+     rotations	xyz
+     ranges
+            -2*pi 2*pi
+            -2*pi 2*pi
+            -2*pi 2*pi
+	 mass 10
+	 RTinMatrix 1
+	 RT 1 0 0 0
+		   0 1 0 0 
+		   0 0 1 1
+                   0 0 0 1 
+		inertia 
+		  1 0 0 
+		  0 1 0
+		  0 0 1
+		com 0 0 0 
+		mesh  .2  .2  .2
+		mesh  .2 -.2  .2
+		mesh  .2 -.2 -.2
+		mesh  .2  .2 -.2
+		mesh -.2  .2 -.2
+		mesh -.2  .2  .2
+		mesh -.2 -.2  .2
+		mesh -.2 -.2 -.2
+		mesh -.2  .2 -.2
+		mesh  .2  .2 -.2
+		mesh  .2 -.2 -.2
+		mesh -.2 -.2 -.2
+		mesh -.2 -.2  .2
+		mesh  .2 -.2  .2
+		mesh  .2  .2  .2
+		mesh -.2  .2  .2
+		mesh  .2  .2  .2
+		mesh  .2  .2 -.2
+	endsegment
+
+// Thorax3
+	segment Thorax3
+    parent Thorax2
+    rotations	xyz
+	mass 10
+	RTinMatrix 1
+	RT 1 0 0 0
+	   0 1 0 0
+	   0 0 1 1
+       0 0 0 1
+	inertia
+		  1 0 0 
+		  0 1 0
+		  0 0 1
+	com 0 0 0
+		mesh  .2  .2  .2
+		mesh  .2 -.2  .2
+		mesh  .2 -.2 -.2
+		mesh  .2  .2 -.2
+		mesh -.2  .2 -.2
+		mesh -.2  .2  .2
+		mesh -.2 -.2  .2
+		mesh -.2 -.2 -.2
+		mesh -.2  .2 -.2
+		mesh  .2  .2 -.2
+		mesh  .2 -.2 -.2
+		mesh -.2 -.2 -.2
+		mesh -.2 -.2  .2
+		mesh  .2 -.2  .2
+		mesh  .2  .2  .2
+		mesh -.2  .2  .2
+		mesh  .2  .2  .2
+		mesh  .2  .2 -.2
+	endsegment
+*/
+
