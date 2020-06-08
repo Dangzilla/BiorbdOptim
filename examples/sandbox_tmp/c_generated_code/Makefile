@@ -47,6 +47,9 @@ SIM_OBJ+= acados_sim_solver_model_name.o
 EX_OBJ=
 EX_OBJ+= main_model_name.o
 
+EX_SIM_OBJ=
+EX_SIM_OBJ+= main_sim_model_name.o
+
 OBJ=
 OBJ+= $(MODEL_OBJ)
 OBJ+= $(SIM_OBJ)
@@ -55,10 +58,10 @@ OBJ+= $(OCP_OBJ)
 EXTERNAL_DIR=
 EXTERNAL_LIB=
 
-INCLUDE_PATH = /home/dangzilla/Documents/Programmation/acados/include
-LIB_PATH = /home/dangzilla/Documents/Programmation/acados/lib
+INCLUDE_PATH = /home/fb/devel/acados/include
+LIB_PATH = /home/fb/devel/acados/lib
 
-all: clean casadi_fun main ocp_solver sim_solver example
+all: clean casadi_fun main main_sim ocp_solver sim_solver example example_sim
 shared_lib: bundled_shared_lib ocp_shared_lib sim_shared_lib
 
 CASADI_MODEL_SOURCE=
@@ -72,6 +75,10 @@ casadi_fun:
 main:
 	gcc $(ACADOS_FLAGS) -c main_model_name.c -I $(INCLUDE_PATH)/blasfeo/include/ -I $(INCLUDE_PATH)/hpipm/include/ \
 	-I $(INCLUDE_PATH) -I $(INCLUDE_PATH)/acados/ \
+
+main_sim:
+	gcc $(ACADOS_FLAGS) -c main_sim_model_name.c -I $(INCLUDE_PATH)/blasfeo/include/ -I $(INCLUDE_PATH)/hpipm/include/ \
+	-I $(INCLUDE_PATH) -I $(INCLUDE_PATH)/acados/
 
 ocp_solver:
 	gcc $(ACADOS_FLAGS) -c acados_solver_model_name.c -I $(INCLUDE_PATH)/blasfeo/include/ -I $(INCLUDE_PATH)/hpipm/include/ \
@@ -90,6 +97,16 @@ example:
 	-I $(INCLUDE_PATH)/hpipm/include/ \
 	-I $(INCLUDE_PATH) \
 	-I $(INCLUDE_PATH)/acados/ \
+
+
+example_sim: sim_solver main_sim
+	gcc $(ACADOS_FLAGS) -o main_sim_model_name $(EX_SIM_OBJ) $(MODEL_OBJ) $(SIM_OBJ) -L $(LIB_PATH) \
+	-L $(LIB_PATH) \
+	-lacados -lhpipm -lblasfeo \
+	-lm \
+	-I $(INCLUDE_PATH)/blasfeo/include/ \
+	-I $(INCLUDE_PATH)/acados/ \
+
 
 bundled_shared_lib: casadi_fun ocp_solver sim_solver
 	gcc $(ACADOS_FLAGS) -shared -o libacados_solver_model_name.so $(OBJ) \

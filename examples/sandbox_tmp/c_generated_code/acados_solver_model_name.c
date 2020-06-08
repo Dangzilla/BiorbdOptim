@@ -90,12 +90,14 @@ ocp_nlp_dims * nlp_dims;
 external_function_param_casadi * forw_vde_casadi;
 external_function_param_casadi * expl_ode_fun;
 
-external_function_param_casadi * nl_constr_h_fun_jac;
+
+
 external_function_param_casadi * nl_constr_h_fun;
+external_function_param_casadi * nl_constr_h_fun_jac;
+
 
 external_function_param_casadi nl_constr_h_e_fun_jac;
 external_function_param_casadi nl_constr_h_e_fun;
-
 
 
 int acados_create()
@@ -1488,18 +1490,18 @@ int acados_create()
     ubx_e[4] = 1;
     lbx_e[5] = 1;
     ubx_e[5] = 1;
-    lbx_e[6] = 0;
-    ubx_e[6] = 0;
-    lbx_e[7] = 0;
-    ubx_e[7] = 0;
-    lbx_e[8] = 0;
-    ubx_e[8] = 0;
-    lbx_e[9] = 0;
-    ubx_e[9] = 0;
-    lbx_e[10] = 0;
-    ubx_e[10] = 0;
-    lbx_e[11] = 0;
-    ubx_e[11] = 0;
+    lbx_e[6] = 1;
+    ubx_e[6] = 1;
+    lbx_e[7] = 1;
+    ubx_e[7] = 1;
+    lbx_e[8] = 1;
+    ubx_e[8] = 1;
+    lbx_e[9] = 1;
+    ubx_e[9] = 1;
+    lbx_e[10] = 1;
+    ubx_e[10] = 1;
+    lbx_e[11] = 1;
+    ubx_e[11] = 1;
     ocp_nlp_constraints_model_set(nlp_config, nlp_dims, nlp_in, N, "idxbx", idxbx_e);
     ocp_nlp_constraints_model_set(nlp_config, nlp_dims, nlp_in, N, "lbx", lbx_e);
     ocp_nlp_constraints_model_set(nlp_config, nlp_dims, nlp_in, N, "ubx", ubx_e);
@@ -1539,6 +1541,10 @@ int acados_create()
     for (int i = 0; i < N; i++)
         ocp_nlp_solver_opts_set_at_stage(nlp_config, nlp_opts, i, "dynamics_newton_iter", &newton_iter_val);
 
+    bool tmp_bool = false;
+    for (int i = 0; i < N; i++)
+        ocp_nlp_solver_opts_set_at_stage(nlp_config, nlp_opts, i, "dynamics_jac_reuse", &tmp_bool);
+
     double nlp_solver_step_length = 1;
     ocp_nlp_solver_opts_set(nlp_config, nlp_opts, "step_length", &nlp_solver_step_length);
 
@@ -1554,8 +1560,6 @@ int acados_create()
 
     int qp_solver_iter_max = 50;
     ocp_nlp_solver_opts_set(nlp_config, nlp_opts, "qp_iter_max", &qp_solver_iter_max);
-
-
     // set SQP specific options
     double nlp_solver_tol_stat = 0.01;
     ocp_nlp_solver_opts_set(nlp_config, nlp_opts, "tol_stat", &nlp_solver_tol_stat);
@@ -1678,6 +1682,8 @@ int acados_free()
         external_function_param_casadi_free(&forw_vde_casadi[i]);
         external_function_param_casadi_free(&expl_ode_fun[i]);
     }
+    free(forw_vde_casadi);
+    free(expl_ode_fun);
 
     // cost
 

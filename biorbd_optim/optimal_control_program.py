@@ -574,7 +574,7 @@ class OptimalControlProgram:
                     ipopt_key = "ipopt." + key
                 options[ipopt_key] = options_ipopt[key]
             opts = {**options, **options_common}
-            solver = casadi.nlpsol("nlpsol", solver, nlp, opts)
+            solver = casadi.nlpsol('nlpsol', solver, nlp, opts)
 
         elif solver == "acados":
 

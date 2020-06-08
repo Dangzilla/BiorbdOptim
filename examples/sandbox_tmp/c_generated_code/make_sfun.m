@@ -31,13 +31,14 @@
 % POSSIBILITY OF SUCH DAMAGE.;
 %
 
-SOURCES = [ 'acados_solver_sfunction_model_name.c ', ...
-            'acados_solver_model_name.c ', ...
+SOURCES = [ ...
             'model_name_model/model_name_expl_ode_fun.c ', ...
             'model_name_model/model_name_expl_vde_forw.c ',...
+            'acados_solver_sfunction_model_name.c ', ...
+            'acados_solver_model_name.c '
           ];
 
-INC_PATH = '/home/dangzilla/Documents/Programmation/acados/include';
+INC_PATH = '/home/fb/devel/acados/include';
 
 INCS = [ ' -I', fullfile(INC_PATH, 'blasfeo', 'include'), ...
          ' -I', fullfile(INC_PATH, 'hpipm', 'include'), ...
@@ -49,7 +50,7 @@ CFLAGS  = ' -O';
 
 
 
-LIB_PATH = '/home/dangzilla/Documents/Programmation/acados/lib';
+LIB_PATH = '/home/fb/devel/acados/lib';
 
 LIBS = '-lacados -lhpipm -lblasfeo';
 

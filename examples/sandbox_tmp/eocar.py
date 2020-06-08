@@ -23,6 +23,7 @@ def prepare_ocp(biorbd_model_path, final_time, number_shooting_points, nb_thread
 
     # Add objective functions
     objective_functions = {"type": Objective.Lagrange.MINIMIZE_TORQUE, "weight": 100}
+    objective_functions = {}
 
     # Dynamics
     problem_type = ProblemType.torque_driven
@@ -36,8 +37,8 @@ def prepare_ocp(biorbd_model_path, final_time, number_shooting_points, nb_thread
     X_bounds.max[:, 0] = 0
     X_bounds.min[:n_q, -1] = 1
     X_bounds.max[:n_q, -1] = 1
-    X_bounds.min[n_q:, -1] = 0
-    X_bounds.max[n_q:, -1] = 0
+    X_bounds.min[n_q:, -1] = 1
+    X_bounds.max[n_q:, -1] = 1
 
     # Initial guess
     X_init = InitialConditions([0] * (n_q + n_qdot))
@@ -67,10 +68,11 @@ def prepare_ocp(biorbd_model_path, final_time, number_shooting_points, nb_thread
 
 if __name__ == "__main__":
     ocp = prepare_ocp(
-        biorbd_model_path="eocar-6D.bioMod", final_time=2, number_shooting_points=31,nb_threads=4)
+        biorbd_model_path="eocar-6D.bioMod", final_time=2, number_shooting_points=31, nb_threads=1)
 
     # --- Solve the program --- #
-    sol = ocp.solve(solver = 'acados', acados_dir={"/home/dangzilla/Documents/Programmation/acados"})
+    sol = ocp.solve(solver='acados', acados_dir={"/home/fb/devel/acados"})
+    sol = ocp.solve()
 
     # --- Show results --- #
     result = ShowResult(ocp, sol)
