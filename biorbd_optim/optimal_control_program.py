@@ -596,7 +596,12 @@ class OptimalControlProgram:
                 setattr(acados_ocp.solver_options, key, options_acados[key])
 
             ocp_solver = AcadosOcpSolver(acados_ocp, json_file='acados_ocp.json')
-            return ocp_solver.solve()
+            ocp_solver.solve()
+            out={'x': np.array([ocp_solver.get(i, 'x') for i in range(self.nlp[0]['ns'] + 1)]).T,
+                 'u' : np.array([ocp_solver.get(i, 'u') for i in range(self.nlp[0]['ns'])]).T,
+                 'time_tot' : ocp_solver.get_stats('time_tot')[0],}
+
+            return out
 
         else:
             raise RuntimeError("Available solvers are: 'ipopt' and 'acados'")
@@ -613,7 +618,7 @@ class OptimalControlProgram:
 
         # Solve the problem
         out = solver.call(arg)
-
+        out['time_tot'] = solver.stats()['t_wall_total']
         if return_iterations:
             with open(file_path, "rb") as file:
                 out = out, pickle.load(file)

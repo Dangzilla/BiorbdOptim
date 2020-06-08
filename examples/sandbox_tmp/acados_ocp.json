@@ -1372,7 +1372,7 @@
         "model_external_shared_lib_name": null,
         "nlp_solver_max_iter": 100,
         "nlp_solver_step_length": 1.0,
-        "nlp_solver_tol_comp": 0.01,
+        "nlp_solver_tol_comp": 1e-06,
         "nlp_solver_tol_eq": 0.01,
         "nlp_solver_tol_ineq": 0.01,
         "nlp_solver_tol_stat": 0.01,

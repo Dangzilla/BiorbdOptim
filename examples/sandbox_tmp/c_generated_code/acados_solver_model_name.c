@@ -1570,7 +1570,7 @@ int acados_create()
     double nlp_solver_tol_ineq = 0.01;
     ocp_nlp_solver_opts_set(nlp_config, nlp_opts, "tol_ineq", &nlp_solver_tol_ineq);
 
-    double nlp_solver_tol_comp = 0.01;
+    double nlp_solver_tol_comp = 0.000001;
     ocp_nlp_solver_opts_set(nlp_config, nlp_opts, "tol_comp", &nlp_solver_tol_comp);
 
     int nlp_solver_max_iter = 100;

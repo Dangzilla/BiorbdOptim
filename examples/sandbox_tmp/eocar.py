@@ -1,4 +1,5 @@
 import biorbd
+import numpy as np
 
 from biorbd_optim import (
     OptimalControlProgram,
@@ -8,7 +9,7 @@ from biorbd_optim import (
     QAndQDotBounds,
     InitialConditions,
     ShowResult,
-
+    Data,
 )
 
 
@@ -23,7 +24,6 @@ def prepare_ocp(biorbd_model_path, final_time, number_shooting_points, nb_thread
 
     # Add objective functions
     objective_functions = {"type": Objective.Lagrange.MINIMIZE_TORQUE, "weight": 100}
-    objective_functions = {}
 
     # Dynamics
     problem_type = ProblemType.torque_driven
@@ -71,10 +71,20 @@ if __name__ == "__main__":
         biorbd_model_path="eocar-6D.bioMod", final_time=2, number_shooting_points=31, nb_threads=1)
 
     # --- Solve the program --- #
-    sol = ocp.solve(solver='acados', acados_dir={"/home/fb/devel/acados"})
-    sol = ocp.solve()
+    data_sol_acados = ocp.solve(solver='acados', acados_dir={"/home/fb/devel/acados"}, options_acados={'print_level' :1, 'nlp_solver_tol_comp' : 1e-06})
 
+    sol = ocp.solve()
+    data_sol_ipopt = Data.get_data(ocp, sol, concatenate=False)
+
+    state_diff = np.linalg.norm(data_sol_acados["x"]-np.vstack([data_sol_ipopt[0]["q"],data_sol_ipopt[0]["q_dot"]]))
+    control_diff = np.linalg.norm(data_sol_acados["u"]-data_sol_ipopt[1]["tau"][:,:-1])
+
+
+    print(f'Total time ACADOS : {data_sol_acados["time_tot"]}')
+    print(f'Total time IPOPT : {sol["time_tot"]}')
+    print(f'Difference on sate : {state_diff}')
+    print(f'Difference on control : {control_diff}')
     # --- Show results --- #
     result = ShowResult(ocp, sol)
-    # result.graphs()
+    result.graphs()
     # result.animate()
