@@ -1,13 +1,17 @@
-from math import inf
-from copy import deepcopy
-import pickle
 import os
+import pickle
+from copy import deepcopy
+from math import inf
 
 import biorbd
 import casadi
 from casadi import MX, vertcat, sum1
 
+from .__version__ import __version__
+from .biorbd_interface import BiorbdInterface
+from .constraints import ConstraintFunction, Constraint
 from .enums import OdeSolver
+from .integrator import RK4
 from .mapping import BidirectionalMapping
 from .path_conditions import Bounds, InitialConditions, InterpolationType
 from .constraints import ConstraintFunction, Constraint
@@ -15,10 +19,8 @@ from .continuity import ContinuityFunctions, StateTransitionFunctions
 from .objective_functions import Objective, ObjectiveFunction
 from .parameters import Parameters
 from .plot import OnlineCallback, CustomPlot
-from .integrator import RK4
-from .biorbd_interface import BiorbdInterface
 from .variable_optimization import Data
-from .__version__ import __version__
+from .acados_interface import *
 
 
 class OptimalControlProgram:
@@ -526,7 +528,7 @@ class OptimalControlProgram:
 
         nlp["plot"][plot_name] = custom_plot
 
-    def solve(self, solver="ipopt", show_online_optim=False, return_iterations=False, options_ipopt={}):
+    def solve(self, solver="ipopt", show_online_optim=False, return_iterations=False, options_ipopt={}, options_acados={}, acados_dir={} ):
         """
         Gives to CasADi states, controls, constraints, sum of all objective functions and theirs bounds.
         Gives others parameters to control how solver works.
@@ -535,8 +537,21 @@ class OptimalControlProgram:
         :param options_ipopt: See Ippot documentation for options. (dictionary)
         :return: Solution of the problem. (dictionary)
         """
+
+        if solver == "acados":
+            os.environ["ACADOS_SOURCE_DIR"] = list(acados_dir)[0]
+            from acados_template import AcadosOcpSolver
+
+            if return_iterations or show_online_optim:
+                raise NotImplementedError("return_iterations and show_online_optim are not implemented yet in acados.")
+
+            if self.nb_phases > 1:
+                raise NotImplementedError("more than 1 phase is not implemented yet in acados.")
+
+            acados_ocp = prepare_acados(self)
+
         if return_iterations and not show_online_optim:
-            raise RuntimeError("return_iterations without show_online_optim is not implemented yet.")
+                raise RuntimeError("return_iterations without show_online_optim is not implemented yet.")
 
         all_J = MX()
         for j_nodes in self.J:
@@ -586,9 +601,48 @@ class OptimalControlProgram:
                     ipopt_key = "ipopt." + key
                 options[ipopt_key] = options_ipopt[key]
             opts = {**options, **options_common}
+            solver = casadi.nlpsol('nlpsol', solver, nlp, opts)
+
+        elif solver == "acados":
+
+            acados_ocp.solver_options.qp_solver = 'PARTIAL_CONDENSING_HPIPM'  # FULL_CONDENSING_QPOASES
+            acados_ocp.solver_options.hessian_approx = 'GAUSS_NEWTON'
+            acados_ocp.solver_options.integrator_type = 'ERK'
+            acados_ocp.solver_options.nlp_solver_type = 'SQP'
+
+            acados_ocp.solver_options.nlp_solver_tol_comp = 1e-02
+            acados_ocp.solver_options.nlp_solver_tol_eq = 1e-02
+            acados_ocp.solver_options.nlp_solver_tol_ineq = 1e-02
+            acados_ocp.solver_options.nlp_solver_tol_stat = 1e-02
+            acados_ocp.solver_options.sim_method_newton_iter = 5
+            acados_ocp.solver_options.sim_method_num_stages = 4
+            acados_ocp.solver_options.sim_method_num_steps = 10
+            acados_ocp.solver_options.print_level = 1
+
+            for key in options_acados:
+                setattr(acados_ocp.solver_options, key, options_acados[key])
+
+            ocp_solver = AcadosOcpSolver(acados_ocp, json_file='acados_ocp.json')
+            ocp_solver.solve()
+            acados_x = np.array([ocp_solver.get(i, 'x') for i in range(self.nlp[0]['ns'] + 1)]).T
+            acados_q = acados_x[ :self.nlp[0]['nu'], :]
+            acados_qdot = acados_x[self.nlp[0]['nu']:, : ]
+            acados_u = np.array([ocp_solver.get(i, 'u') for i in range(self.nlp[0]['ns'])]).T
+
+            out={'qqdot': acados_x, 'x': [], 'u' : acados_u, 'time_tot' : ocp_solver.get_stats('time_tot')[0],}
+            for i in range(self.nlp[0]['ns']):
+                out['x'] = vertcat(out['x'], acados_q[:, i])
+                out['x'] = vertcat(out['x'], acados_qdot[:, i])
+                out['x'] = vertcat(out['x'], acados_u[:, i])
+
+            out['x'] = vertcat(out['x'], acados_q[:, self.nlp[0]['ns'] ])
+            out['x'] = vertcat(out['x'], acados_qdot[:, self.nlp[0]['ns']])
+
+            return out
+
         else:
-            raise RuntimeError("Available solvers are: 'ipopt'")
-        solver = casadi.nlpsol("nlpsol", solver, nlp, opts)
+            raise RuntimeError("Available solvers are: 'ipopt' and 'acados'")
+
 
         # Bounds and initial guess
         arg = {
@@ -601,13 +655,15 @@ class OptimalControlProgram:
 
         # Solve the problem
         out = solver.call(arg)
-
+        out['time_tot'] = solver.stats()['t_wall_total']
         if return_iterations:
             with open(file_path, "rb") as file:
                 out = out, pickle.load(file)
                 os.remove(file_path)
                 os.rmdir(directory)
         return out
+
+
 
     def save(self, sol, file_path, sol_iterations=None):
         """
