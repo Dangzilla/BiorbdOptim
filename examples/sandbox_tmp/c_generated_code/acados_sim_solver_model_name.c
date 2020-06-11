@@ -30,7 +30,6 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.;
  */
-
 // standard
 #include <stdio.h>
 #include <stdlib.h>
@@ -113,19 +112,22 @@ int model_name_acados_sim_create()
 
     // sim opts
     model_name_sim_opts = sim_opts_create(model_name_sim_config, model_name_sim_dims);
+    int tmp_int = 4;
+    sim_opts_set(model_name_sim_config, model_name_sim_opts, "num_stages", &tmp_int);
+    tmp_int = 10;
+    sim_opts_set(model_name_sim_config, model_name_sim_opts, "num_steps", &tmp_int);
+    tmp_int = 5;
+    sim_opts_set(model_name_sim_config, model_name_sim_opts, "newton_iter", &tmp_int);
+    bool tmp_bool = false;
+    sim_opts_set(model_name_sim_config, model_name_sim_opts, "jac_reuse", &tmp_bool);
 
-    model_name_sim_opts->ns = 4; // number of stages in rk integrator
-    model_name_sim_opts->num_steps = 10; // number of integration steps
-    model_name_sim_opts->sens_adj = false;
-    model_name_sim_opts->sens_forw = true;
-    model_name_sim_opts->newton_iter = 5;
 
 
     // sim in / out
     model_name_sim_in  = sim_in_create(model_name_sim_config, model_name_sim_dims);
     model_name_sim_out = sim_out_create(model_name_sim_config, model_name_sim_dims);
-
-    model_name_sim_in->T = Tsim;
+    sim_in_set(model_name_sim_config, model_name_sim_dims,
+               model_name_sim_in, "T", &Tsim);
 
     // model functions
     model_name_sim_config->model_set(model_name_sim_in->model,

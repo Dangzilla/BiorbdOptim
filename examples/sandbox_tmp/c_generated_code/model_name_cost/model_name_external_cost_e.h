@@ -31,64 +31,32 @@
  * POSSIBILITY OF SUCH DAMAGE.;
  */
 
-#ifndef ACADOS_SOLVER_model_name_H_
-#define ACADOS_SOLVER_model_name_H_
 
-#include "acados_c/ocp_nlp_interface.h"
-#include "acados_c/external_function_interface.h"
+#ifndef model_name_EXT_COST_E
+#define model_name_EXT_COST_E
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-int acados_create();
-int acados_update_params(int stage, double *value, int np);
-int acados_solve();
-int acados_free();
-void acados_print_stats();
 
-ocp_nlp_in * acados_get_nlp_in();
-ocp_nlp_out * acados_get_nlp_out();
-ocp_nlp_solver * acados_get_nlp_solver();
-ocp_nlp_config * acados_get_nlp_config();
-void * acados_get_nlp_opts();
-ocp_nlp_dims * acados_get_nlp_dims();
-ocp_nlp_plan * acados_get_nlp_plan();
+int model_name_ext_cost_e_fun(const real_t** arg, real_t** res, int* iw, real_t* w, void *mem);
+int model_name_ext_cost_e_fun_work(int *, int *, int *, int *);
+const int *model_name_ext_cost_e_fun_sparsity_in(int);
+const int *model_name_ext_cost_e_fun_sparsity_out(int);
+int model_name_ext_cost_e_fun_n_in();
+int model_name_ext_cost_e_fun_n_out();
+
+int model_name_ext_cost_e_fun_jac_hess(const real_t** arg, real_t** res, int* iw, real_t* w, void *mem);
+int model_name_ext_cost_e_fun_jac_hess_work(int *, int *, int *, int *);
+const int *model_name_ext_cost_e_fun_jac_hess_sparsity_in(int);
+const int *model_name_ext_cost_e_fun_jac_hess_sparsity_out(int);
+int model_name_ext_cost_e_fun_jac_hess_n_in();
+int model_name_ext_cost_e_fun_jac_hess_n_out();
+
 
 #ifdef __cplusplus
 } /* extern "C" */
 #endif
 
-// ** global data **
-// acados objects
-extern ocp_nlp_in * nlp_in;
-extern ocp_nlp_out * nlp_out;
-extern ocp_nlp_solver * nlp_solver;
-extern void * nlp_opts;
-extern ocp_nlp_plan * nlp_solver_plan;
-extern ocp_nlp_config * nlp_config;
-extern ocp_nlp_dims * nlp_dims;
-
-/* external functions */
-// dynamics
-
-extern external_function_param_casadi * forw_vde_casadi;
-extern external_function_param_casadi * expl_ode_fun;
-
-
-
-// cost
-
-extern external_function_param_casadi * ext_cost_fun;
-extern external_function_param_casadi * ext_cost_fun_jac_hess;
-
-
-extern external_function_param_casadi ext_cost_e_fun;
-extern external_function_param_casadi ext_cost_e_fun_jac_hess;
-
-// constraints
-
-
-
-
-#endif  // ACADOS_SOLVER_model_name_H_
+#endif  // model_name_EXT_COST_E
