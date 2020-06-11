@@ -1,4 +1,4 @@
-from casadi import MX, Function
+from casadi import MX, SX, Function
 
 
 def RK4(ode, ode_opt):
@@ -21,7 +21,7 @@ def RK4(ode, ode_opt):
 
     def dxdt(h, states, controls, params):
         u = controls
-        x = MX(states.shape[0], n_step + 1)
+        x = SX(states.shape[0], n_step + 1)
         p = params
         x[:, 0] = states
 
@@ -35,4 +35,4 @@ def RK4(ode, ode_opt):
 
     return Function(
         "integrator", [x_sym, u_sym, param_sym], dxdt(h, x_sym, u_sym, param_sym), ["x0", "p", "params"], ["xf", "xall"]
-    )
+    ).expand()

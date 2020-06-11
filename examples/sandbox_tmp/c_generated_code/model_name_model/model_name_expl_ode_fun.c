@@ -24,9 +24,7 @@ extern "C" {
 #endif
 
 /* Add prefix to internal symbols */
-#define casadi_copy CASADI_PREFIX(copy)
 #define casadi_f0 CASADI_PREFIX(f0)
-#define casadi_f1 CASADI_PREFIX(f1)
 #define casadi_s0 CASADI_PREFIX(s0)
 #define casadi_s1 CASADI_PREFIX(s1)
 #define casadi_s2 CASADI_PREFIX(s2)
@@ -49,23 +47,12 @@ extern "C" {
 
 casadi_real casadi_sq(casadi_real x) { return x*x;}
 
-void casadi_copy(const casadi_real* x, casadi_int n, casadi_real* y) {
-  casadi_int i;
-  if (y) {
-    if (x) {
-      for (i=0; i<n; ++i) *y++ = *x++;
-    } else {
-      for (i=0; i<n; ++i) *y++ = 0.;
-    }
-  }
-}
-
 static const casadi_int casadi_s0[16] = {12, 1, 0, 12, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
 static const casadi_int casadi_s1[10] = {6, 1, 0, 6, 0, 1, 2, 3, 4, 5};
 static const casadi_int casadi_s2[3] = {0, 0, 0};
 
-/* ForwardDyn:(x[12],u[6],p[])->(xdot[12]) */
-static int casadi_f1(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem) {
+/* model_name_expl_ode_fun:(i0[12],i1[6],i2[])->(o0[12]) */
+static int casadi_f0(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem) {
   casadi_real a0, a1, a10, a11, a12, a13, a14, a15, a16, a17, a18, a19, a2, a20, a21, a22, a23, a24, a25, a26, a27, a28, a29, a3, a30, a31, a32, a33, a34, a35, a36, a37, a38, a39, a4, a40, a41, a42, a43, a44, a45, a46, a47, a48, a49, a5, a50, a6, a7, a8, a9;
   a0=arg[0]? arg[0][6] : 0;
   if (res[0]!=0) res[0][0]=a0;
@@ -452,81 +439,6 @@ static int casadi_f1(const casadi_real** arg, casadi_real** res, casadi_int* iw,
   return 0;
 }
 
-/* model_name_expl_ode_fun:(i0[12],i1[6],i2[])->(o0[12]) */
-static int casadi_f0(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem) {
-  casadi_real **res1=res+1, *rr;
-  const casadi_real **arg1=arg+3;
-  casadi_real w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, *w12=w+63, *w13=w+75, *w15=w+81;
-  /* #0: @0 = input[0][0] */
-  w0 = arg[0] ? arg[0][0] : 0;
-  /* #1: @1 = input[0][1] */
-  w1 = arg[0] ? arg[0][1] : 0;
-  /* #2: @2 = input[0][2] */
-  w2 = arg[0] ? arg[0][2] : 0;
-  /* #3: @3 = input[0][3] */
-  w3 = arg[0] ? arg[0][3] : 0;
-  /* #4: @4 = input[0][4] */
-  w4 = arg[0] ? arg[0][4] : 0;
-  /* #5: @5 = input[0][5] */
-  w5 = arg[0] ? arg[0][5] : 0;
-  /* #6: @6 = input[0][6] */
-  w6 = arg[0] ? arg[0][6] : 0;
-  /* #7: @7 = input[0][7] */
-  w7 = arg[0] ? arg[0][7] : 0;
-  /* #8: @8 = input[0][8] */
-  w8 = arg[0] ? arg[0][8] : 0;
-  /* #9: @9 = input[0][9] */
-  w9 = arg[0] ? arg[0][9] : 0;
-  /* #10: @10 = input[0][10] */
-  w10 = arg[0] ? arg[0][10] : 0;
-  /* #11: @11 = input[0][11] */
-  w11 = arg[0] ? arg[0][11] : 0;
-  /* #12: @12 = vertcat(@0, @1, @2, @3, @4, @5, @6, @7, @8, @9, @10, @11) */
-  rr=w12;
-  *rr++ = w0;
-  *rr++ = w1;
-  *rr++ = w2;
-  *rr++ = w3;
-  *rr++ = w4;
-  *rr++ = w5;
-  *rr++ = w6;
-  *rr++ = w7;
-  *rr++ = w8;
-  *rr++ = w9;
-  *rr++ = w10;
-  *rr++ = w11;
-  /* #13: @0 = input[1][0] */
-  w0 = arg[1] ? arg[1][0] : 0;
-  /* #14: @1 = input[1][1] */
-  w1 = arg[1] ? arg[1][1] : 0;
-  /* #15: @2 = input[1][2] */
-  w2 = arg[1] ? arg[1][2] : 0;
-  /* #16: @3 = input[1][3] */
-  w3 = arg[1] ? arg[1][3] : 0;
-  /* #17: @4 = input[1][4] */
-  w4 = arg[1] ? arg[1][4] : 0;
-  /* #18: @5 = input[1][5] */
-  w5 = arg[1] ? arg[1][5] : 0;
-  /* #19: @13 = vertcat(@0, @1, @2, @3, @4, @5) */
-  rr=w13;
-  *rr++ = w0;
-  *rr++ = w1;
-  *rr++ = w2;
-  *rr++ = w3;
-  *rr++ = w4;
-  *rr++ = w5;
-  /* #20: @14 = 0x0 */
-  /* #21: @15 = ForwardDyn(@12, @13, @14) */
-  arg1[0]=w12;
-  arg1[1]=w13;
-  arg1[2]=0;
-  res1[0]=w15;
-  if (casadi_f1(arg1, res1, iw, w, 0)) return 1;
-  /* #22: output[0][0] = @15 */
-  casadi_copy(w15, 12, res[0]);
-  return 0;
-}
-
 CASADI_SYMBOL_EXPORT int model_name_expl_ode_fun(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem){
   return casadi_f0(arg, res, iw, w, mem);
 }
@@ -598,10 +510,10 @@ CASADI_SYMBOL_EXPORT const casadi_int* model_name_expl_ode_fun_sparsity_out(casa
 }
 
 CASADI_SYMBOL_EXPORT int model_name_expl_ode_fun_work(casadi_int *sz_arg, casadi_int* sz_res, casadi_int *sz_iw, casadi_int *sz_w) {
-  if (sz_arg) *sz_arg = 15;
-  if (sz_res) *sz_res = 2;
+  if (sz_arg) *sz_arg = 3;
+  if (sz_res) *sz_res = 1;
   if (sz_iw) *sz_iw = 0;
-  if (sz_w) *sz_w = 93;
+  if (sz_w) *sz_w = 0;
   return 0;
 }
 

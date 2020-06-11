@@ -45,6 +45,10 @@
 
 
 
+#include "model_name_cost/model_name_external_cost.h"
+
+#include "model_name_cost/model_name_external_cost_e.h"
+
 
 #include "acados_solver_model_name.h"
 
@@ -90,12 +94,18 @@ ocp_nlp_dims * nlp_dims;
 external_function_param_casadi * forw_vde_casadi;
 external_function_param_casadi * expl_ode_fun;
 
-external_function_param_casadi * nl_constr_h_fun_jac;
+
+
 external_function_param_casadi * nl_constr_h_fun;
+external_function_param_casadi * nl_constr_h_fun_jac;
+
 
 external_function_param_casadi nl_constr_h_e_fun_jac;
 external_function_param_casadi nl_constr_h_e_fun;
-
+external_function_param_casadi * ext_cost_fun;
+external_function_param_casadi * ext_cost_fun_jac_hess;
+external_function_param_casadi ext_cost_e_fun;
+external_function_param_casadi ext_cost_e_fun_jac_hess;
 
 
 int acados_create()
@@ -111,9 +121,9 @@ int acados_create()
 
     nlp_solver_plan->ocp_qp_solver_plan.qp_solver = PARTIAL_CONDENSING_HPIPM;
     for (int i = 0; i < N; i++)
-        nlp_solver_plan->nlp_cost[i] = LINEAR_LS;
+        nlp_solver_plan->nlp_cost[i] = EXTERNAL;
 
-    nlp_solver_plan->nlp_cost[N] = LINEAR_LS;
+    nlp_solver_plan->nlp_cost[N] = EXTERNAL;
 
     for (int i = 0; i < N; i++)
     {
@@ -221,11 +231,9 @@ int acados_create()
 
     for (int i = 0; i < N; i++)
     {
-        ocp_nlp_dims_set_cost(nlp_config, nlp_dims, i, "ny", &ny[i]);
     }
     ocp_nlp_dims_set_constraints(nlp_config, nlp_dims, N, "nh", &nh[N]);
     ocp_nlp_dims_set_constraints(nlp_config, nlp_dims, N, "nsh", &nsh[N]);
-    ocp_nlp_dims_set_cost(nlp_config, nlp_dims, N, "ny", &ny[N]);
 
 
 
@@ -258,6 +266,51 @@ int acados_create()
     }
 
 
+    // external cost
+    ext_cost_fun = (external_function_param_casadi *) malloc(sizeof(external_function_param_casadi)*N);
+    for (int i = 0; i < N; i++)
+    {
+        ext_cost_fun[i].casadi_fun = &model_name_ext_cost_fun;
+        ext_cost_fun[i].casadi_n_in = &model_name_ext_cost_fun_n_in;
+        ext_cost_fun[i].casadi_n_out = &model_name_ext_cost_fun_n_out;
+        ext_cost_fun[i].casadi_sparsity_in = &model_name_ext_cost_fun_sparsity_in;
+        ext_cost_fun[i].casadi_sparsity_out = &model_name_ext_cost_fun_sparsity_out;
+        ext_cost_fun[i].casadi_work = &model_name_ext_cost_fun_work;
+
+        external_function_param_casadi_create(&ext_cost_fun[i], 0);
+    }
+    ext_cost_fun_jac_hess = (external_function_param_casadi *) malloc(sizeof(external_function_param_casadi)*N);
+    for (int i = 0; i < N; i++)
+    {
+        // residual function
+        ext_cost_fun_jac_hess[i].casadi_fun = &model_name_ext_cost_fun_jac_hess;
+        ext_cost_fun_jac_hess[i].casadi_n_in = &model_name_ext_cost_fun_jac_hess_n_in;
+        ext_cost_fun_jac_hess[i].casadi_n_out = &model_name_ext_cost_fun_jac_hess_n_out;
+        ext_cost_fun_jac_hess[i].casadi_sparsity_in = &model_name_ext_cost_fun_jac_hess_sparsity_in;
+        ext_cost_fun_jac_hess[i].casadi_sparsity_out = &model_name_ext_cost_fun_jac_hess_sparsity_out;
+        ext_cost_fun_jac_hess[i].casadi_work = &model_name_ext_cost_fun_jac_hess_work;
+
+        external_function_param_casadi_create(&ext_cost_fun_jac_hess[i], 0);
+    }
+    // external cost
+    ext_cost_e_fun.casadi_fun = &model_name_ext_cost_e_fun;
+    ext_cost_e_fun.casadi_n_in = &model_name_ext_cost_e_fun_n_in;
+    ext_cost_e_fun.casadi_n_out = &model_name_ext_cost_e_fun_n_out;
+    ext_cost_e_fun.casadi_sparsity_in = &model_name_ext_cost_e_fun_sparsity_in;
+    ext_cost_e_fun.casadi_sparsity_out = &model_name_ext_cost_e_fun_sparsity_out;
+    ext_cost_e_fun.casadi_work = &model_name_ext_cost_e_fun_work;
+
+    external_function_param_casadi_create(&ext_cost_e_fun, 0);
+
+    // external cost
+    ext_cost_e_fun_jac_hess.casadi_fun = &model_name_ext_cost_e_fun_jac_hess;
+    ext_cost_e_fun_jac_hess.casadi_n_in = &model_name_ext_cost_e_fun_jac_hess_n_in;
+    ext_cost_e_fun_jac_hess.casadi_n_out = &model_name_ext_cost_e_fun_jac_hess_n_out;
+    ext_cost_e_fun_jac_hess.casadi_sparsity_in = &model_name_ext_cost_e_fun_jac_hess_sparsity_in;
+    ext_cost_e_fun_jac_hess.casadi_sparsity_out = &model_name_ext_cost_e_fun_jac_hess_sparsity_out;
+    ext_cost_e_fun_jac_hess.casadi_work = &model_name_ext_cost_e_fun_jac_hess_work;
+
+    external_function_param_casadi_create(&ext_cost_e_fun_jac_hess, 0);
 
     /************************************************
     *  nlp_in
@@ -313,1021 +366,19 @@ int acados_create()
 
 
     /**** Cost ****/
-
-    double W[NY*NY];
-    
-    W[0+(NY) * 0] = 1;
-    W[0+(NY) * 1] = 0;
-    W[0+(NY) * 2] = 0;
-    W[0+(NY) * 3] = 0;
-    W[0+(NY) * 4] = 0;
-    W[0+(NY) * 5] = 0;
-    W[0+(NY) * 6] = 0;
-    W[0+(NY) * 7] = 0;
-    W[0+(NY) * 8] = 0;
-    W[0+(NY) * 9] = 0;
-    W[0+(NY) * 10] = 0;
-    W[0+(NY) * 11] = 0;
-    W[0+(NY) * 12] = 0;
-    W[0+(NY) * 13] = 0;
-    W[0+(NY) * 14] = 0;
-    W[0+(NY) * 15] = 0;
-    W[0+(NY) * 16] = 0;
-    W[0+(NY) * 17] = 0;
-    W[1+(NY) * 0] = 0;
-    W[1+(NY) * 1] = 1;
-    W[1+(NY) * 2] = 0;
-    W[1+(NY) * 3] = 0;
-    W[1+(NY) * 4] = 0;
-    W[1+(NY) * 5] = 0;
-    W[1+(NY) * 6] = 0;
-    W[1+(NY) * 7] = 0;
-    W[1+(NY) * 8] = 0;
-    W[1+(NY) * 9] = 0;
-    W[1+(NY) * 10] = 0;
-    W[1+(NY) * 11] = 0;
-    W[1+(NY) * 12] = 0;
-    W[1+(NY) * 13] = 0;
-    W[1+(NY) * 14] = 0;
-    W[1+(NY) * 15] = 0;
-    W[1+(NY) * 16] = 0;
-    W[1+(NY) * 17] = 0;
-    W[2+(NY) * 0] = 0;
-    W[2+(NY) * 1] = 0;
-    W[2+(NY) * 2] = 1;
-    W[2+(NY) * 3] = 0;
-    W[2+(NY) * 4] = 0;
-    W[2+(NY) * 5] = 0;
-    W[2+(NY) * 6] = 0;
-    W[2+(NY) * 7] = 0;
-    W[2+(NY) * 8] = 0;
-    W[2+(NY) * 9] = 0;
-    W[2+(NY) * 10] = 0;
-    W[2+(NY) * 11] = 0;
-    W[2+(NY) * 12] = 0;
-    W[2+(NY) * 13] = 0;
-    W[2+(NY) * 14] = 0;
-    W[2+(NY) * 15] = 0;
-    W[2+(NY) * 16] = 0;
-    W[2+(NY) * 17] = 0;
-    W[3+(NY) * 0] = 0;
-    W[3+(NY) * 1] = 0;
-    W[3+(NY) * 2] = 0;
-    W[3+(NY) * 3] = 1;
-    W[3+(NY) * 4] = 0;
-    W[3+(NY) * 5] = 0;
-    W[3+(NY) * 6] = 0;
-    W[3+(NY) * 7] = 0;
-    W[3+(NY) * 8] = 0;
-    W[3+(NY) * 9] = 0;
-    W[3+(NY) * 10] = 0;
-    W[3+(NY) * 11] = 0;
-    W[3+(NY) * 12] = 0;
-    W[3+(NY) * 13] = 0;
-    W[3+(NY) * 14] = 0;
-    W[3+(NY) * 15] = 0;
-    W[3+(NY) * 16] = 0;
-    W[3+(NY) * 17] = 0;
-    W[4+(NY) * 0] = 0;
-    W[4+(NY) * 1] = 0;
-    W[4+(NY) * 2] = 0;
-    W[4+(NY) * 3] = 0;
-    W[4+(NY) * 4] = 1;
-    W[4+(NY) * 5] = 0;
-    W[4+(NY) * 6] = 0;
-    W[4+(NY) * 7] = 0;
-    W[4+(NY) * 8] = 0;
-    W[4+(NY) * 9] = 0;
-    W[4+(NY) * 10] = 0;
-    W[4+(NY) * 11] = 0;
-    W[4+(NY) * 12] = 0;
-    W[4+(NY) * 13] = 0;
-    W[4+(NY) * 14] = 0;
-    W[4+(NY) * 15] = 0;
-    W[4+(NY) * 16] = 0;
-    W[4+(NY) * 17] = 0;
-    W[5+(NY) * 0] = 0;
-    W[5+(NY) * 1] = 0;
-    W[5+(NY) * 2] = 0;
-    W[5+(NY) * 3] = 0;
-    W[5+(NY) * 4] = 0;
-    W[5+(NY) * 5] = 1;
-    W[5+(NY) * 6] = 0;
-    W[5+(NY) * 7] = 0;
-    W[5+(NY) * 8] = 0;
-    W[5+(NY) * 9] = 0;
-    W[5+(NY) * 10] = 0;
-    W[5+(NY) * 11] = 0;
-    W[5+(NY) * 12] = 0;
-    W[5+(NY) * 13] = 0;
-    W[5+(NY) * 14] = 0;
-    W[5+(NY) * 15] = 0;
-    W[5+(NY) * 16] = 0;
-    W[5+(NY) * 17] = 0;
-    W[6+(NY) * 0] = 0;
-    W[6+(NY) * 1] = 0;
-    W[6+(NY) * 2] = 0;
-    W[6+(NY) * 3] = 0;
-    W[6+(NY) * 4] = 0;
-    W[6+(NY) * 5] = 0;
-    W[6+(NY) * 6] = 1;
-    W[6+(NY) * 7] = 0;
-    W[6+(NY) * 8] = 0;
-    W[6+(NY) * 9] = 0;
-    W[6+(NY) * 10] = 0;
-    W[6+(NY) * 11] = 0;
-    W[6+(NY) * 12] = 0;
-    W[6+(NY) * 13] = 0;
-    W[6+(NY) * 14] = 0;
-    W[6+(NY) * 15] = 0;
-    W[6+(NY) * 16] = 0;
-    W[6+(NY) * 17] = 0;
-    W[7+(NY) * 0] = 0;
-    W[7+(NY) * 1] = 0;
-    W[7+(NY) * 2] = 0;
-    W[7+(NY) * 3] = 0;
-    W[7+(NY) * 4] = 0;
-    W[7+(NY) * 5] = 0;
-    W[7+(NY) * 6] = 0;
-    W[7+(NY) * 7] = 1;
-    W[7+(NY) * 8] = 0;
-    W[7+(NY) * 9] = 0;
-    W[7+(NY) * 10] = 0;
-    W[7+(NY) * 11] = 0;
-    W[7+(NY) * 12] = 0;
-    W[7+(NY) * 13] = 0;
-    W[7+(NY) * 14] = 0;
-    W[7+(NY) * 15] = 0;
-    W[7+(NY) * 16] = 0;
-    W[7+(NY) * 17] = 0;
-    W[8+(NY) * 0] = 0;
-    W[8+(NY) * 1] = 0;
-    W[8+(NY) * 2] = 0;
-    W[8+(NY) * 3] = 0;
-    W[8+(NY) * 4] = 0;
-    W[8+(NY) * 5] = 0;
-    W[8+(NY) * 6] = 0;
-    W[8+(NY) * 7] = 0;
-    W[8+(NY) * 8] = 1;
-    W[8+(NY) * 9] = 0;
-    W[8+(NY) * 10] = 0;
-    W[8+(NY) * 11] = 0;
-    W[8+(NY) * 12] = 0;
-    W[8+(NY) * 13] = 0;
-    W[8+(NY) * 14] = 0;
-    W[8+(NY) * 15] = 0;
-    W[8+(NY) * 16] = 0;
-    W[8+(NY) * 17] = 0;
-    W[9+(NY) * 0] = 0;
-    W[9+(NY) * 1] = 0;
-    W[9+(NY) * 2] = 0;
-    W[9+(NY) * 3] = 0;
-    W[9+(NY) * 4] = 0;
-    W[9+(NY) * 5] = 0;
-    W[9+(NY) * 6] = 0;
-    W[9+(NY) * 7] = 0;
-    W[9+(NY) * 8] = 0;
-    W[9+(NY) * 9] = 1;
-    W[9+(NY) * 10] = 0;
-    W[9+(NY) * 11] = 0;
-    W[9+(NY) * 12] = 0;
-    W[9+(NY) * 13] = 0;
-    W[9+(NY) * 14] = 0;
-    W[9+(NY) * 15] = 0;
-    W[9+(NY) * 16] = 0;
-    W[9+(NY) * 17] = 0;
-    W[10+(NY) * 0] = 0;
-    W[10+(NY) * 1] = 0;
-    W[10+(NY) * 2] = 0;
-    W[10+(NY) * 3] = 0;
-    W[10+(NY) * 4] = 0;
-    W[10+(NY) * 5] = 0;
-    W[10+(NY) * 6] = 0;
-    W[10+(NY) * 7] = 0;
-    W[10+(NY) * 8] = 0;
-    W[10+(NY) * 9] = 0;
-    W[10+(NY) * 10] = 1;
-    W[10+(NY) * 11] = 0;
-    W[10+(NY) * 12] = 0;
-    W[10+(NY) * 13] = 0;
-    W[10+(NY) * 14] = 0;
-    W[10+(NY) * 15] = 0;
-    W[10+(NY) * 16] = 0;
-    W[10+(NY) * 17] = 0;
-    W[11+(NY) * 0] = 0;
-    W[11+(NY) * 1] = 0;
-    W[11+(NY) * 2] = 0;
-    W[11+(NY) * 3] = 0;
-    W[11+(NY) * 4] = 0;
-    W[11+(NY) * 5] = 0;
-    W[11+(NY) * 6] = 0;
-    W[11+(NY) * 7] = 0;
-    W[11+(NY) * 8] = 0;
-    W[11+(NY) * 9] = 0;
-    W[11+(NY) * 10] = 0;
-    W[11+(NY) * 11] = 1;
-    W[11+(NY) * 12] = 0;
-    W[11+(NY) * 13] = 0;
-    W[11+(NY) * 14] = 0;
-    W[11+(NY) * 15] = 0;
-    W[11+(NY) * 16] = 0;
-    W[11+(NY) * 17] = 0;
-    W[12+(NY) * 0] = 0;
-    W[12+(NY) * 1] = 0;
-    W[12+(NY) * 2] = 0;
-    W[12+(NY) * 3] = 0;
-    W[12+(NY) * 4] = 0;
-    W[12+(NY) * 5] = 0;
-    W[12+(NY) * 6] = 0;
-    W[12+(NY) * 7] = 0;
-    W[12+(NY) * 8] = 0;
-    W[12+(NY) * 9] = 0;
-    W[12+(NY) * 10] = 0;
-    W[12+(NY) * 11] = 0;
-    W[12+(NY) * 12] = 1;
-    W[12+(NY) * 13] = 0;
-    W[12+(NY) * 14] = 0;
-    W[12+(NY) * 15] = 0;
-    W[12+(NY) * 16] = 0;
-    W[12+(NY) * 17] = 0;
-    W[13+(NY) * 0] = 0;
-    W[13+(NY) * 1] = 0;
-    W[13+(NY) * 2] = 0;
-    W[13+(NY) * 3] = 0;
-    W[13+(NY) * 4] = 0;
-    W[13+(NY) * 5] = 0;
-    W[13+(NY) * 6] = 0;
-    W[13+(NY) * 7] = 0;
-    W[13+(NY) * 8] = 0;
-    W[13+(NY) * 9] = 0;
-    W[13+(NY) * 10] = 0;
-    W[13+(NY) * 11] = 0;
-    W[13+(NY) * 12] = 0;
-    W[13+(NY) * 13] = 1;
-    W[13+(NY) * 14] = 0;
-    W[13+(NY) * 15] = 0;
-    W[13+(NY) * 16] = 0;
-    W[13+(NY) * 17] = 0;
-    W[14+(NY) * 0] = 0;
-    W[14+(NY) * 1] = 0;
-    W[14+(NY) * 2] = 0;
-    W[14+(NY) * 3] = 0;
-    W[14+(NY) * 4] = 0;
-    W[14+(NY) * 5] = 0;
-    W[14+(NY) * 6] = 0;
-    W[14+(NY) * 7] = 0;
-    W[14+(NY) * 8] = 0;
-    W[14+(NY) * 9] = 0;
-    W[14+(NY) * 10] = 0;
-    W[14+(NY) * 11] = 0;
-    W[14+(NY) * 12] = 0;
-    W[14+(NY) * 13] = 0;
-    W[14+(NY) * 14] = 1;
-    W[14+(NY) * 15] = 0;
-    W[14+(NY) * 16] = 0;
-    W[14+(NY) * 17] = 0;
-    W[15+(NY) * 0] = 0;
-    W[15+(NY) * 1] = 0;
-    W[15+(NY) * 2] = 0;
-    W[15+(NY) * 3] = 0;
-    W[15+(NY) * 4] = 0;
-    W[15+(NY) * 5] = 0;
-    W[15+(NY) * 6] = 0;
-    W[15+(NY) * 7] = 0;
-    W[15+(NY) * 8] = 0;
-    W[15+(NY) * 9] = 0;
-    W[15+(NY) * 10] = 0;
-    W[15+(NY) * 11] = 0;
-    W[15+(NY) * 12] = 0;
-    W[15+(NY) * 13] = 0;
-    W[15+(NY) * 14] = 0;
-    W[15+(NY) * 15] = 1;
-    W[15+(NY) * 16] = 0;
-    W[15+(NY) * 17] = 0;
-    W[16+(NY) * 0] = 0;
-    W[16+(NY) * 1] = 0;
-    W[16+(NY) * 2] = 0;
-    W[16+(NY) * 3] = 0;
-    W[16+(NY) * 4] = 0;
-    W[16+(NY) * 5] = 0;
-    W[16+(NY) * 6] = 0;
-    W[16+(NY) * 7] = 0;
-    W[16+(NY) * 8] = 0;
-    W[16+(NY) * 9] = 0;
-    W[16+(NY) * 10] = 0;
-    W[16+(NY) * 11] = 0;
-    W[16+(NY) * 12] = 0;
-    W[16+(NY) * 13] = 0;
-    W[16+(NY) * 14] = 0;
-    W[16+(NY) * 15] = 0;
-    W[16+(NY) * 16] = 1;
-    W[16+(NY) * 17] = 0;
-    W[17+(NY) * 0] = 0;
-    W[17+(NY) * 1] = 0;
-    W[17+(NY) * 2] = 0;
-    W[17+(NY) * 3] = 0;
-    W[17+(NY) * 4] = 0;
-    W[17+(NY) * 5] = 0;
-    W[17+(NY) * 6] = 0;
-    W[17+(NY) * 7] = 0;
-    W[17+(NY) * 8] = 0;
-    W[17+(NY) * 9] = 0;
-    W[17+(NY) * 10] = 0;
-    W[17+(NY) * 11] = 0;
-    W[17+(NY) * 12] = 0;
-    W[17+(NY) * 13] = 0;
-    W[17+(NY) * 14] = 0;
-    W[17+(NY) * 15] = 0;
-    W[17+(NY) * 16] = 0;
-    W[17+(NY) * 17] = 1;
-
-    double yref[NY];
-    
-    yref[0] = 0;
-    yref[1] = 0;
-    yref[2] = 0;
-    yref[3] = 0;
-    yref[4] = 0;
-    yref[5] = 0;
-    yref[6] = 0;
-    yref[7] = 0;
-    yref[8] = 0;
-    yref[9] = 0;
-    yref[10] = 0;
-    yref[11] = 0;
-    yref[12] = 0;
-    yref[13] = 0;
-    yref[14] = 0;
-    yref[15] = 0;
-    yref[16] = 0;
-    yref[17] = 0;
-
     for (int i = 0; i < N; i++)
     {
-        ocp_nlp_cost_model_set(nlp_config, nlp_dims, nlp_in, i, "W", W);
-        ocp_nlp_cost_model_set(nlp_config, nlp_dims, nlp_in, i, "yref", yref);
+        ocp_nlp_cost_model_set(nlp_config, nlp_dims, nlp_in, i, "ext_cost_fun", &ext_cost_fun[i]);
+        ocp_nlp_cost_model_set(nlp_config, nlp_dims, nlp_in, i, "ext_cost_fun_jac_hess", &ext_cost_fun_jac_hess[i]);
     }
-
-
-    double Vx[NY*NX];
-    
-    Vx[0+(NY) * 0] = 1;
-    Vx[0+(NY) * 1] = 0;
-    Vx[0+(NY) * 2] = 0;
-    Vx[0+(NY) * 3] = 0;
-    Vx[0+(NY) * 4] = 0;
-    Vx[0+(NY) * 5] = 0;
-    Vx[0+(NY) * 6] = 0;
-    Vx[0+(NY) * 7] = 0;
-    Vx[0+(NY) * 8] = 0;
-    Vx[0+(NY) * 9] = 0;
-    Vx[0+(NY) * 10] = 0;
-    Vx[0+(NY) * 11] = 0;
-    Vx[1+(NY) * 0] = 0;
-    Vx[1+(NY) * 1] = 1;
-    Vx[1+(NY) * 2] = 0;
-    Vx[1+(NY) * 3] = 0;
-    Vx[1+(NY) * 4] = 0;
-    Vx[1+(NY) * 5] = 0;
-    Vx[1+(NY) * 6] = 0;
-    Vx[1+(NY) * 7] = 0;
-    Vx[1+(NY) * 8] = 0;
-    Vx[1+(NY) * 9] = 0;
-    Vx[1+(NY) * 10] = 0;
-    Vx[1+(NY) * 11] = 0;
-    Vx[2+(NY) * 0] = 0;
-    Vx[2+(NY) * 1] = 0;
-    Vx[2+(NY) * 2] = 1;
-    Vx[2+(NY) * 3] = 0;
-    Vx[2+(NY) * 4] = 0;
-    Vx[2+(NY) * 5] = 0;
-    Vx[2+(NY) * 6] = 0;
-    Vx[2+(NY) * 7] = 0;
-    Vx[2+(NY) * 8] = 0;
-    Vx[2+(NY) * 9] = 0;
-    Vx[2+(NY) * 10] = 0;
-    Vx[2+(NY) * 11] = 0;
-    Vx[3+(NY) * 0] = 0;
-    Vx[3+(NY) * 1] = 0;
-    Vx[3+(NY) * 2] = 0;
-    Vx[3+(NY) * 3] = 1;
-    Vx[3+(NY) * 4] = 0;
-    Vx[3+(NY) * 5] = 0;
-    Vx[3+(NY) * 6] = 0;
-    Vx[3+(NY) * 7] = 0;
-    Vx[3+(NY) * 8] = 0;
-    Vx[3+(NY) * 9] = 0;
-    Vx[3+(NY) * 10] = 0;
-    Vx[3+(NY) * 11] = 0;
-    Vx[4+(NY) * 0] = 0;
-    Vx[4+(NY) * 1] = 0;
-    Vx[4+(NY) * 2] = 0;
-    Vx[4+(NY) * 3] = 0;
-    Vx[4+(NY) * 4] = 1;
-    Vx[4+(NY) * 5] = 0;
-    Vx[4+(NY) * 6] = 0;
-    Vx[4+(NY) * 7] = 0;
-    Vx[4+(NY) * 8] = 0;
-    Vx[4+(NY) * 9] = 0;
-    Vx[4+(NY) * 10] = 0;
-    Vx[4+(NY) * 11] = 0;
-    Vx[5+(NY) * 0] = 0;
-    Vx[5+(NY) * 1] = 0;
-    Vx[5+(NY) * 2] = 0;
-    Vx[5+(NY) * 3] = 0;
-    Vx[5+(NY) * 4] = 0;
-    Vx[5+(NY) * 5] = 1;
-    Vx[5+(NY) * 6] = 0;
-    Vx[5+(NY) * 7] = 0;
-    Vx[5+(NY) * 8] = 0;
-    Vx[5+(NY) * 9] = 0;
-    Vx[5+(NY) * 10] = 0;
-    Vx[5+(NY) * 11] = 0;
-    Vx[6+(NY) * 0] = 0;
-    Vx[6+(NY) * 1] = 0;
-    Vx[6+(NY) * 2] = 0;
-    Vx[6+(NY) * 3] = 0;
-    Vx[6+(NY) * 4] = 0;
-    Vx[6+(NY) * 5] = 0;
-    Vx[6+(NY) * 6] = 1;
-    Vx[6+(NY) * 7] = 0;
-    Vx[6+(NY) * 8] = 0;
-    Vx[6+(NY) * 9] = 0;
-    Vx[6+(NY) * 10] = 0;
-    Vx[6+(NY) * 11] = 0;
-    Vx[7+(NY) * 0] = 0;
-    Vx[7+(NY) * 1] = 0;
-    Vx[7+(NY) * 2] = 0;
-    Vx[7+(NY) * 3] = 0;
-    Vx[7+(NY) * 4] = 0;
-    Vx[7+(NY) * 5] = 0;
-    Vx[7+(NY) * 6] = 0;
-    Vx[7+(NY) * 7] = 1;
-    Vx[7+(NY) * 8] = 0;
-    Vx[7+(NY) * 9] = 0;
-    Vx[7+(NY) * 10] = 0;
-    Vx[7+(NY) * 11] = 0;
-    Vx[8+(NY) * 0] = 0;
-    Vx[8+(NY) * 1] = 0;
-    Vx[8+(NY) * 2] = 0;
-    Vx[8+(NY) * 3] = 0;
-    Vx[8+(NY) * 4] = 0;
-    Vx[8+(NY) * 5] = 0;
-    Vx[8+(NY) * 6] = 0;
-    Vx[8+(NY) * 7] = 0;
-    Vx[8+(NY) * 8] = 1;
-    Vx[8+(NY) * 9] = 0;
-    Vx[8+(NY) * 10] = 0;
-    Vx[8+(NY) * 11] = 0;
-    Vx[9+(NY) * 0] = 0;
-    Vx[9+(NY) * 1] = 0;
-    Vx[9+(NY) * 2] = 0;
-    Vx[9+(NY) * 3] = 0;
-    Vx[9+(NY) * 4] = 0;
-    Vx[9+(NY) * 5] = 0;
-    Vx[9+(NY) * 6] = 0;
-    Vx[9+(NY) * 7] = 0;
-    Vx[9+(NY) * 8] = 0;
-    Vx[9+(NY) * 9] = 1;
-    Vx[9+(NY) * 10] = 0;
-    Vx[9+(NY) * 11] = 0;
-    Vx[10+(NY) * 0] = 0;
-    Vx[10+(NY) * 1] = 0;
-    Vx[10+(NY) * 2] = 0;
-    Vx[10+(NY) * 3] = 0;
-    Vx[10+(NY) * 4] = 0;
-    Vx[10+(NY) * 5] = 0;
-    Vx[10+(NY) * 6] = 0;
-    Vx[10+(NY) * 7] = 0;
-    Vx[10+(NY) * 8] = 0;
-    Vx[10+(NY) * 9] = 0;
-    Vx[10+(NY) * 10] = 1;
-    Vx[10+(NY) * 11] = 0;
-    Vx[11+(NY) * 0] = 0;
-    Vx[11+(NY) * 1] = 0;
-    Vx[11+(NY) * 2] = 0;
-    Vx[11+(NY) * 3] = 0;
-    Vx[11+(NY) * 4] = 0;
-    Vx[11+(NY) * 5] = 0;
-    Vx[11+(NY) * 6] = 0;
-    Vx[11+(NY) * 7] = 0;
-    Vx[11+(NY) * 8] = 0;
-    Vx[11+(NY) * 9] = 0;
-    Vx[11+(NY) * 10] = 0;
-    Vx[11+(NY) * 11] = 1;
-    Vx[12+(NY) * 0] = 0;
-    Vx[12+(NY) * 1] = 0;
-    Vx[12+(NY) * 2] = 0;
-    Vx[12+(NY) * 3] = 0;
-    Vx[12+(NY) * 4] = 0;
-    Vx[12+(NY) * 5] = 0;
-    Vx[12+(NY) * 6] = 0;
-    Vx[12+(NY) * 7] = 0;
-    Vx[12+(NY) * 8] = 0;
-    Vx[12+(NY) * 9] = 0;
-    Vx[12+(NY) * 10] = 0;
-    Vx[12+(NY) * 11] = 0;
-    Vx[13+(NY) * 0] = 0;
-    Vx[13+(NY) * 1] = 0;
-    Vx[13+(NY) * 2] = 0;
-    Vx[13+(NY) * 3] = 0;
-    Vx[13+(NY) * 4] = 0;
-    Vx[13+(NY) * 5] = 0;
-    Vx[13+(NY) * 6] = 0;
-    Vx[13+(NY) * 7] = 0;
-    Vx[13+(NY) * 8] = 0;
-    Vx[13+(NY) * 9] = 0;
-    Vx[13+(NY) * 10] = 0;
-    Vx[13+(NY) * 11] = 0;
-    Vx[14+(NY) * 0] = 0;
-    Vx[14+(NY) * 1] = 0;
-    Vx[14+(NY) * 2] = 0;
-    Vx[14+(NY) * 3] = 0;
-    Vx[14+(NY) * 4] = 0;
-    Vx[14+(NY) * 5] = 0;
-    Vx[14+(NY) * 6] = 0;
-    Vx[14+(NY) * 7] = 0;
-    Vx[14+(NY) * 8] = 0;
-    Vx[14+(NY) * 9] = 0;
-    Vx[14+(NY) * 10] = 0;
-    Vx[14+(NY) * 11] = 0;
-    Vx[15+(NY) * 0] = 0;
-    Vx[15+(NY) * 1] = 0;
-    Vx[15+(NY) * 2] = 0;
-    Vx[15+(NY) * 3] = 0;
-    Vx[15+(NY) * 4] = 0;
-    Vx[15+(NY) * 5] = 0;
-    Vx[15+(NY) * 6] = 0;
-    Vx[15+(NY) * 7] = 0;
-    Vx[15+(NY) * 8] = 0;
-    Vx[15+(NY) * 9] = 0;
-    Vx[15+(NY) * 10] = 0;
-    Vx[15+(NY) * 11] = 0;
-    Vx[16+(NY) * 0] = 0;
-    Vx[16+(NY) * 1] = 0;
-    Vx[16+(NY) * 2] = 0;
-    Vx[16+(NY) * 3] = 0;
-    Vx[16+(NY) * 4] = 0;
-    Vx[16+(NY) * 5] = 0;
-    Vx[16+(NY) * 6] = 0;
-    Vx[16+(NY) * 7] = 0;
-    Vx[16+(NY) * 8] = 0;
-    Vx[16+(NY) * 9] = 0;
-    Vx[16+(NY) * 10] = 0;
-    Vx[16+(NY) * 11] = 0;
-    Vx[17+(NY) * 0] = 0;
-    Vx[17+(NY) * 1] = 0;
-    Vx[17+(NY) * 2] = 0;
-    Vx[17+(NY) * 3] = 0;
-    Vx[17+(NY) * 4] = 0;
-    Vx[17+(NY) * 5] = 0;
-    Vx[17+(NY) * 6] = 0;
-    Vx[17+(NY) * 7] = 0;
-    Vx[17+(NY) * 8] = 0;
-    Vx[17+(NY) * 9] = 0;
-    Vx[17+(NY) * 10] = 0;
-    Vx[17+(NY) * 11] = 0;
-    for (int i = 0; i < N; i++)
-    {
-        ocp_nlp_cost_model_set(nlp_config, nlp_dims, nlp_in, i, "Vx", Vx);
-    }
-
-
-    double Vu[NY*NU];
-    
-    Vu[0+(NY) * 0] = 0;
-    Vu[0+(NY) * 1] = 0;
-    Vu[0+(NY) * 2] = 0;
-    Vu[0+(NY) * 3] = 0;
-    Vu[0+(NY) * 4] = 0;
-    Vu[0+(NY) * 5] = 0;
-    Vu[1+(NY) * 0] = 0;
-    Vu[1+(NY) * 1] = 0;
-    Vu[1+(NY) * 2] = 0;
-    Vu[1+(NY) * 3] = 0;
-    Vu[1+(NY) * 4] = 0;
-    Vu[1+(NY) * 5] = 0;
-    Vu[2+(NY) * 0] = 0;
-    Vu[2+(NY) * 1] = 0;
-    Vu[2+(NY) * 2] = 0;
-    Vu[2+(NY) * 3] = 0;
-    Vu[2+(NY) * 4] = 0;
-    Vu[2+(NY) * 5] = 0;
-    Vu[3+(NY) * 0] = 0;
-    Vu[3+(NY) * 1] = 0;
-    Vu[3+(NY) * 2] = 0;
-    Vu[3+(NY) * 3] = 0;
-    Vu[3+(NY) * 4] = 0;
-    Vu[3+(NY) * 5] = 0;
-    Vu[4+(NY) * 0] = 0;
-    Vu[4+(NY) * 1] = 0;
-    Vu[4+(NY) * 2] = 0;
-    Vu[4+(NY) * 3] = 0;
-    Vu[4+(NY) * 4] = 0;
-    Vu[4+(NY) * 5] = 0;
-    Vu[5+(NY) * 0] = 0;
-    Vu[5+(NY) * 1] = 0;
-    Vu[5+(NY) * 2] = 0;
-    Vu[5+(NY) * 3] = 0;
-    Vu[5+(NY) * 4] = 0;
-    Vu[5+(NY) * 5] = 0;
-    Vu[6+(NY) * 0] = 0;
-    Vu[6+(NY) * 1] = 0;
-    Vu[6+(NY) * 2] = 0;
-    Vu[6+(NY) * 3] = 0;
-    Vu[6+(NY) * 4] = 0;
-    Vu[6+(NY) * 5] = 0;
-    Vu[7+(NY) * 0] = 0;
-    Vu[7+(NY) * 1] = 0;
-    Vu[7+(NY) * 2] = 0;
-    Vu[7+(NY) * 3] = 0;
-    Vu[7+(NY) * 4] = 0;
-    Vu[7+(NY) * 5] = 0;
-    Vu[8+(NY) * 0] = 0;
-    Vu[8+(NY) * 1] = 0;
-    Vu[8+(NY) * 2] = 0;
-    Vu[8+(NY) * 3] = 0;
-    Vu[8+(NY) * 4] = 0;
-    Vu[8+(NY) * 5] = 0;
-    Vu[9+(NY) * 0] = 0;
-    Vu[9+(NY) * 1] = 0;
-    Vu[9+(NY) * 2] = 0;
-    Vu[9+(NY) * 3] = 0;
-    Vu[9+(NY) * 4] = 0;
-    Vu[9+(NY) * 5] = 0;
-    Vu[10+(NY) * 0] = 0;
-    Vu[10+(NY) * 1] = 0;
-    Vu[10+(NY) * 2] = 0;
-    Vu[10+(NY) * 3] = 0;
-    Vu[10+(NY) * 4] = 0;
-    Vu[10+(NY) * 5] = 0;
-    Vu[11+(NY) * 0] = 0;
-    Vu[11+(NY) * 1] = 0;
-    Vu[11+(NY) * 2] = 0;
-    Vu[11+(NY) * 3] = 0;
-    Vu[11+(NY) * 4] = 0;
-    Vu[11+(NY) * 5] = 0;
-    Vu[12+(NY) * 0] = 1;
-    Vu[12+(NY) * 1] = 0;
-    Vu[12+(NY) * 2] = 0;
-    Vu[12+(NY) * 3] = 0;
-    Vu[12+(NY) * 4] = 0;
-    Vu[12+(NY) * 5] = 0;
-    Vu[13+(NY) * 0] = 0;
-    Vu[13+(NY) * 1] = 1;
-    Vu[13+(NY) * 2] = 0;
-    Vu[13+(NY) * 3] = 0;
-    Vu[13+(NY) * 4] = 0;
-    Vu[13+(NY) * 5] = 0;
-    Vu[14+(NY) * 0] = 0;
-    Vu[14+(NY) * 1] = 0;
-    Vu[14+(NY) * 2] = 1;
-    Vu[14+(NY) * 3] = 0;
-    Vu[14+(NY) * 4] = 0;
-    Vu[14+(NY) * 5] = 0;
-    Vu[15+(NY) * 0] = 0;
-    Vu[15+(NY) * 1] = 0;
-    Vu[15+(NY) * 2] = 0;
-    Vu[15+(NY) * 3] = 1;
-    Vu[15+(NY) * 4] = 0;
-    Vu[15+(NY) * 5] = 0;
-    Vu[16+(NY) * 0] = 0;
-    Vu[16+(NY) * 1] = 0;
-    Vu[16+(NY) * 2] = 0;
-    Vu[16+(NY) * 3] = 0;
-    Vu[16+(NY) * 4] = 1;
-    Vu[16+(NY) * 5] = 0;
-    Vu[17+(NY) * 0] = 0;
-    Vu[17+(NY) * 1] = 0;
-    Vu[17+(NY) * 2] = 0;
-    Vu[17+(NY) * 3] = 0;
-    Vu[17+(NY) * 4] = 0;
-    Vu[17+(NY) * 5] = 1;
-
-    for (int i = 0; i < N; i++)
-    {
-        ocp_nlp_cost_model_set(nlp_config, nlp_dims, nlp_in, i, "Vu", Vu);
-    }
-
-
-
 
 
 
 
     // terminal cost
 
-
-    double yref_e[NYN];
-    
-    yref_e[0] = 1;
-    yref_e[1] = 1;
-    yref_e[2] = 1;
-    yref_e[3] = 1;
-    yref_e[4] = 1;
-    yref_e[5] = 1;
-    yref_e[6] = 1;
-    yref_e[7] = 1;
-    yref_e[8] = 1;
-    yref_e[9] = 1;
-    yref_e[10] = 1;
-    yref_e[11] = 1;
-    ocp_nlp_cost_model_set(nlp_config, nlp_dims, nlp_in, N, "yref", yref_e);
-
-    double W_e[NYN*NYN];
-    
-    W_e[0+(NYN) * 0] = 1;
-    W_e[0+(NYN) * 1] = 0;
-    W_e[0+(NYN) * 2] = 0;
-    W_e[0+(NYN) * 3] = 0;
-    W_e[0+(NYN) * 4] = 0;
-    W_e[0+(NYN) * 5] = 0;
-    W_e[0+(NYN) * 6] = 0;
-    W_e[0+(NYN) * 7] = 0;
-    W_e[0+(NYN) * 8] = 0;
-    W_e[0+(NYN) * 9] = 0;
-    W_e[0+(NYN) * 10] = 0;
-    W_e[0+(NYN) * 11] = 0;
-    W_e[1+(NYN) * 0] = 0;
-    W_e[1+(NYN) * 1] = 1;
-    W_e[1+(NYN) * 2] = 0;
-    W_e[1+(NYN) * 3] = 0;
-    W_e[1+(NYN) * 4] = 0;
-    W_e[1+(NYN) * 5] = 0;
-    W_e[1+(NYN) * 6] = 0;
-    W_e[1+(NYN) * 7] = 0;
-    W_e[1+(NYN) * 8] = 0;
-    W_e[1+(NYN) * 9] = 0;
-    W_e[1+(NYN) * 10] = 0;
-    W_e[1+(NYN) * 11] = 0;
-    W_e[2+(NYN) * 0] = 0;
-    W_e[2+(NYN) * 1] = 0;
-    W_e[2+(NYN) * 2] = 1;
-    W_e[2+(NYN) * 3] = 0;
-    W_e[2+(NYN) * 4] = 0;
-    W_e[2+(NYN) * 5] = 0;
-    W_e[2+(NYN) * 6] = 0;
-    W_e[2+(NYN) * 7] = 0;
-    W_e[2+(NYN) * 8] = 0;
-    W_e[2+(NYN) * 9] = 0;
-    W_e[2+(NYN) * 10] = 0;
-    W_e[2+(NYN) * 11] = 0;
-    W_e[3+(NYN) * 0] = 0;
-    W_e[3+(NYN) * 1] = 0;
-    W_e[3+(NYN) * 2] = 0;
-    W_e[3+(NYN) * 3] = 1;
-    W_e[3+(NYN) * 4] = 0;
-    W_e[3+(NYN) * 5] = 0;
-    W_e[3+(NYN) * 6] = 0;
-    W_e[3+(NYN) * 7] = 0;
-    W_e[3+(NYN) * 8] = 0;
-    W_e[3+(NYN) * 9] = 0;
-    W_e[3+(NYN) * 10] = 0;
-    W_e[3+(NYN) * 11] = 0;
-    W_e[4+(NYN) * 0] = 0;
-    W_e[4+(NYN) * 1] = 0;
-    W_e[4+(NYN) * 2] = 0;
-    W_e[4+(NYN) * 3] = 0;
-    W_e[4+(NYN) * 4] = 1;
-    W_e[4+(NYN) * 5] = 0;
-    W_e[4+(NYN) * 6] = 0;
-    W_e[4+(NYN) * 7] = 0;
-    W_e[4+(NYN) * 8] = 0;
-    W_e[4+(NYN) * 9] = 0;
-    W_e[4+(NYN) * 10] = 0;
-    W_e[4+(NYN) * 11] = 0;
-    W_e[5+(NYN) * 0] = 0;
-    W_e[5+(NYN) * 1] = 0;
-    W_e[5+(NYN) * 2] = 0;
-    W_e[5+(NYN) * 3] = 0;
-    W_e[5+(NYN) * 4] = 0;
-    W_e[5+(NYN) * 5] = 1;
-    W_e[5+(NYN) * 6] = 0;
-    W_e[5+(NYN) * 7] = 0;
-    W_e[5+(NYN) * 8] = 0;
-    W_e[5+(NYN) * 9] = 0;
-    W_e[5+(NYN) * 10] = 0;
-    W_e[5+(NYN) * 11] = 0;
-    W_e[6+(NYN) * 0] = 0;
-    W_e[6+(NYN) * 1] = 0;
-    W_e[6+(NYN) * 2] = 0;
-    W_e[6+(NYN) * 3] = 0;
-    W_e[6+(NYN) * 4] = 0;
-    W_e[6+(NYN) * 5] = 0;
-    W_e[6+(NYN) * 6] = 1;
-    W_e[6+(NYN) * 7] = 0;
-    W_e[6+(NYN) * 8] = 0;
-    W_e[6+(NYN) * 9] = 0;
-    W_e[6+(NYN) * 10] = 0;
-    W_e[6+(NYN) * 11] = 0;
-    W_e[7+(NYN) * 0] = 0;
-    W_e[7+(NYN) * 1] = 0;
-    W_e[7+(NYN) * 2] = 0;
-    W_e[7+(NYN) * 3] = 0;
-    W_e[7+(NYN) * 4] = 0;
-    W_e[7+(NYN) * 5] = 0;
-    W_e[7+(NYN) * 6] = 0;
-    W_e[7+(NYN) * 7] = 1;
-    W_e[7+(NYN) * 8] = 0;
-    W_e[7+(NYN) * 9] = 0;
-    W_e[7+(NYN) * 10] = 0;
-    W_e[7+(NYN) * 11] = 0;
-    W_e[8+(NYN) * 0] = 0;
-    W_e[8+(NYN) * 1] = 0;
-    W_e[8+(NYN) * 2] = 0;
-    W_e[8+(NYN) * 3] = 0;
-    W_e[8+(NYN) * 4] = 0;
-    W_e[8+(NYN) * 5] = 0;
-    W_e[8+(NYN) * 6] = 0;
-    W_e[8+(NYN) * 7] = 0;
-    W_e[8+(NYN) * 8] = 1;
-    W_e[8+(NYN) * 9] = 0;
-    W_e[8+(NYN) * 10] = 0;
-    W_e[8+(NYN) * 11] = 0;
-    W_e[9+(NYN) * 0] = 0;
-    W_e[9+(NYN) * 1] = 0;
-    W_e[9+(NYN) * 2] = 0;
-    W_e[9+(NYN) * 3] = 0;
-    W_e[9+(NYN) * 4] = 0;
-    W_e[9+(NYN) * 5] = 0;
-    W_e[9+(NYN) * 6] = 0;
-    W_e[9+(NYN) * 7] = 0;
-    W_e[9+(NYN) * 8] = 0;
-    W_e[9+(NYN) * 9] = 1;
-    W_e[9+(NYN) * 10] = 0;
-    W_e[9+(NYN) * 11] = 0;
-    W_e[10+(NYN) * 0] = 0;
-    W_e[10+(NYN) * 1] = 0;
-    W_e[10+(NYN) * 2] = 0;
-    W_e[10+(NYN) * 3] = 0;
-    W_e[10+(NYN) * 4] = 0;
-    W_e[10+(NYN) * 5] = 0;
-    W_e[10+(NYN) * 6] = 0;
-    W_e[10+(NYN) * 7] = 0;
-    W_e[10+(NYN) * 8] = 0;
-    W_e[10+(NYN) * 9] = 0;
-    W_e[10+(NYN) * 10] = 1;
-    W_e[10+(NYN) * 11] = 0;
-    W_e[11+(NYN) * 0] = 0;
-    W_e[11+(NYN) * 1] = 0;
-    W_e[11+(NYN) * 2] = 0;
-    W_e[11+(NYN) * 3] = 0;
-    W_e[11+(NYN) * 4] = 0;
-    W_e[11+(NYN) * 5] = 0;
-    W_e[11+(NYN) * 6] = 0;
-    W_e[11+(NYN) * 7] = 0;
-    W_e[11+(NYN) * 8] = 0;
-    W_e[11+(NYN) * 9] = 0;
-    W_e[11+(NYN) * 10] = 0;
-    W_e[11+(NYN) * 11] = 1;
-    ocp_nlp_cost_model_set(nlp_config, nlp_dims, nlp_in, N, "W", W_e);
-    double Vx_e[NYN*NX];
-    
-    Vx_e[0+(NYN) * 0] = 0;
-    Vx_e[0+(NYN) * 1] = 0;
-    Vx_e[0+(NYN) * 2] = 0;
-    Vx_e[0+(NYN) * 3] = 0;
-    Vx_e[0+(NYN) * 4] = 0;
-    Vx_e[0+(NYN) * 5] = 0;
-    Vx_e[0+(NYN) * 6] = 0;
-    Vx_e[0+(NYN) * 7] = 0;
-    Vx_e[0+(NYN) * 8] = 0;
-    Vx_e[0+(NYN) * 9] = 0;
-    Vx_e[0+(NYN) * 10] = 0;
-    Vx_e[0+(NYN) * 11] = 0;
-    Vx_e[1+(NYN) * 0] = 0;
-    Vx_e[1+(NYN) * 1] = 0;
-    Vx_e[1+(NYN) * 2] = 0;
-    Vx_e[1+(NYN) * 3] = 0;
-    Vx_e[1+(NYN) * 4] = 0;
-    Vx_e[1+(NYN) * 5] = 0;
-    Vx_e[1+(NYN) * 6] = 0;
-    Vx_e[1+(NYN) * 7] = 0;
-    Vx_e[1+(NYN) * 8] = 0;
-    Vx_e[1+(NYN) * 9] = 0;
-    Vx_e[1+(NYN) * 10] = 0;
-    Vx_e[1+(NYN) * 11] = 0;
-    Vx_e[2+(NYN) * 0] = 0;
-    Vx_e[2+(NYN) * 1] = 0;
-    Vx_e[2+(NYN) * 2] = 0;
-    Vx_e[2+(NYN) * 3] = 0;
-    Vx_e[2+(NYN) * 4] = 0;
-    Vx_e[2+(NYN) * 5] = 0;
-    Vx_e[2+(NYN) * 6] = 0;
-    Vx_e[2+(NYN) * 7] = 0;
-    Vx_e[2+(NYN) * 8] = 0;
-    Vx_e[2+(NYN) * 9] = 0;
-    Vx_e[2+(NYN) * 10] = 0;
-    Vx_e[2+(NYN) * 11] = 0;
-    Vx_e[3+(NYN) * 0] = 0;
-    Vx_e[3+(NYN) * 1] = 0;
-    Vx_e[3+(NYN) * 2] = 0;
-    Vx_e[3+(NYN) * 3] = 0;
-    Vx_e[3+(NYN) * 4] = 0;
-    Vx_e[3+(NYN) * 5] = 0;
-    Vx_e[3+(NYN) * 6] = 0;
-    Vx_e[3+(NYN) * 7] = 0;
-    Vx_e[3+(NYN) * 8] = 0;
-    Vx_e[3+(NYN) * 9] = 0;
-    Vx_e[3+(NYN) * 10] = 0;
-    Vx_e[3+(NYN) * 11] = 0;
-    Vx_e[4+(NYN) * 0] = 0;
-    Vx_e[4+(NYN) * 1] = 0;
-    Vx_e[4+(NYN) * 2] = 0;
-    Vx_e[4+(NYN) * 3] = 0;
-    Vx_e[4+(NYN) * 4] = 0;
-    Vx_e[4+(NYN) * 5] = 0;
-    Vx_e[4+(NYN) * 6] = 0;
-    Vx_e[4+(NYN) * 7] = 0;
-    Vx_e[4+(NYN) * 8] = 0;
-    Vx_e[4+(NYN) * 9] = 0;
-    Vx_e[4+(NYN) * 10] = 0;
-    Vx_e[4+(NYN) * 11] = 0;
-    Vx_e[5+(NYN) * 0] = 0;
-    Vx_e[5+(NYN) * 1] = 0;
-    Vx_e[5+(NYN) * 2] = 0;
-    Vx_e[5+(NYN) * 3] = 0;
-    Vx_e[5+(NYN) * 4] = 0;
-    Vx_e[5+(NYN) * 5] = 0;
-    Vx_e[5+(NYN) * 6] = 0;
-    Vx_e[5+(NYN) * 7] = 0;
-    Vx_e[5+(NYN) * 8] = 0;
-    Vx_e[5+(NYN) * 9] = 0;
-    Vx_e[5+(NYN) * 10] = 0;
-    Vx_e[5+(NYN) * 11] = 0;
-    Vx_e[6+(NYN) * 0] = 0;
-    Vx_e[6+(NYN) * 1] = 0;
-    Vx_e[6+(NYN) * 2] = 0;
-    Vx_e[6+(NYN) * 3] = 0;
-    Vx_e[6+(NYN) * 4] = 0;
-    Vx_e[6+(NYN) * 5] = 0;
-    Vx_e[6+(NYN) * 6] = 0;
-    Vx_e[6+(NYN) * 7] = 0;
-    Vx_e[6+(NYN) * 8] = 0;
-    Vx_e[6+(NYN) * 9] = 0;
-    Vx_e[6+(NYN) * 10] = 0;
-    Vx_e[6+(NYN) * 11] = 0;
-    Vx_e[7+(NYN) * 0] = 0;
-    Vx_e[7+(NYN) * 1] = 0;
-    Vx_e[7+(NYN) * 2] = 0;
-    Vx_e[7+(NYN) * 3] = 0;
-    Vx_e[7+(NYN) * 4] = 0;
-    Vx_e[7+(NYN) * 5] = 0;
-    Vx_e[7+(NYN) * 6] = 0;
-    Vx_e[7+(NYN) * 7] = 0;
-    Vx_e[7+(NYN) * 8] = 0;
-    Vx_e[7+(NYN) * 9] = 0;
-    Vx_e[7+(NYN) * 10] = 0;
-    Vx_e[7+(NYN) * 11] = 0;
-    Vx_e[8+(NYN) * 0] = 0;
-    Vx_e[8+(NYN) * 1] = 0;
-    Vx_e[8+(NYN) * 2] = 0;
-    Vx_e[8+(NYN) * 3] = 0;
-    Vx_e[8+(NYN) * 4] = 0;
-    Vx_e[8+(NYN) * 5] = 0;
-    Vx_e[8+(NYN) * 6] = 0;
-    Vx_e[8+(NYN) * 7] = 0;
-    Vx_e[8+(NYN) * 8] = 0;
-    Vx_e[8+(NYN) * 9] = 0;
-    Vx_e[8+(NYN) * 10] = 0;
-    Vx_e[8+(NYN) * 11] = 0;
-    Vx_e[9+(NYN) * 0] = 0;
-    Vx_e[9+(NYN) * 1] = 0;
-    Vx_e[9+(NYN) * 2] = 0;
-    Vx_e[9+(NYN) * 3] = 0;
-    Vx_e[9+(NYN) * 4] = 0;
-    Vx_e[9+(NYN) * 5] = 0;
-    Vx_e[9+(NYN) * 6] = 0;
-    Vx_e[9+(NYN) * 7] = 0;
-    Vx_e[9+(NYN) * 8] = 0;
-    Vx_e[9+(NYN) * 9] = 0;
-    Vx_e[9+(NYN) * 10] = 0;
-    Vx_e[9+(NYN) * 11] = 0;
-    Vx_e[10+(NYN) * 0] = 0;
-    Vx_e[10+(NYN) * 1] = 0;
-    Vx_e[10+(NYN) * 2] = 0;
-    Vx_e[10+(NYN) * 3] = 0;
-    Vx_e[10+(NYN) * 4] = 0;
-    Vx_e[10+(NYN) * 5] = 0;
-    Vx_e[10+(NYN) * 6] = 0;
-    Vx_e[10+(NYN) * 7] = 0;
-    Vx_e[10+(NYN) * 8] = 0;
-    Vx_e[10+(NYN) * 9] = 0;
-    Vx_e[10+(NYN) * 10] = 0;
-    Vx_e[10+(NYN) * 11] = 0;
-    Vx_e[11+(NYN) * 0] = 0;
-    Vx_e[11+(NYN) * 1] = 0;
-    Vx_e[11+(NYN) * 2] = 0;
-    Vx_e[11+(NYN) * 3] = 0;
-    Vx_e[11+(NYN) * 4] = 0;
-    Vx_e[11+(NYN) * 5] = 0;
-    Vx_e[11+(NYN) * 6] = 0;
-    Vx_e[11+(NYN) * 7] = 0;
-    Vx_e[11+(NYN) * 8] = 0;
-    Vx_e[11+(NYN) * 9] = 0;
-    Vx_e[11+(NYN) * 10] = 0;
-    Vx_e[11+(NYN) * 11] = 0;
-    ocp_nlp_cost_model_set(nlp_config, nlp_dims, nlp_in, N, "Vx", Vx_e);
+    ocp_nlp_cost_model_set(nlp_config, nlp_dims, nlp_in, N, "ext_cost_fun", &ext_cost_e_fun);
+    ocp_nlp_cost_model_set(nlp_config, nlp_dims, nlp_in, N, "ext_cost_fun_jac_hess", &ext_cost_e_fun_jac_hess);
 
 
 
@@ -1539,6 +590,10 @@ int acados_create()
     for (int i = 0; i < N; i++)
         ocp_nlp_solver_opts_set_at_stage(nlp_config, nlp_opts, i, "dynamics_newton_iter", &newton_iter_val);
 
+    bool tmp_bool = false;
+    for (int i = 0; i < N; i++)
+        ocp_nlp_solver_opts_set_at_stage(nlp_config, nlp_opts, i, "dynamics_jac_reuse", &tmp_bool);
+
     double nlp_solver_step_length = 1;
     ocp_nlp_solver_opts_set(nlp_config, nlp_opts, "step_length", &nlp_solver_step_length);
 
@@ -1554,8 +609,6 @@ int acados_create()
 
     int qp_solver_iter_max = 50;
     ocp_nlp_solver_opts_set(nlp_config, nlp_opts, "qp_iter_max", &qp_solver_iter_max);
-
-
     // set SQP specific options
     double nlp_solver_tol_stat = 0.01;
     ocp_nlp_solver_opts_set(nlp_config, nlp_opts, "tol_stat", &nlp_solver_tol_stat);
@@ -1678,8 +731,19 @@ int acados_free()
         external_function_param_casadi_free(&forw_vde_casadi[i]);
         external_function_param_casadi_free(&expl_ode_fun[i]);
     }
+    free(forw_vde_casadi);
+    free(expl_ode_fun);
 
     // cost
+    for (int i = 0; i < 31; i++)
+    {
+        external_function_param_casadi_free(&ext_cost_fun[i]);
+        external_function_param_casadi_free(&ext_cost_fun_jac_hess[i]);
+    }
+    free(ext_cost_fun);
+    free(ext_cost_fun_jac_hess);
+    external_function_param_casadi_free(&ext_cost_e_fun);
+    external_function_param_casadi_free(&ext_cost_e_fun_jac_hess);
 
     // constraints
 

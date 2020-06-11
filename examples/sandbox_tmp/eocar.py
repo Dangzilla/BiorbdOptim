@@ -74,7 +74,7 @@ if __name__ == "__main__":
         biorbd_model_path="eocar-6D.bioMod", final_time=2, number_shooting_points=31, nb_threads=1)
 
     # --- Solve the program --- #
-    data_sol_acados = ocp.solve(solver='acados', acados_dir={"/home/dangzilla/Documents/Programmation/acados"}, options_acados={'print_level' :1, 'nlp_solver_tol_comp' : 1e-06})
+    data_sol_acados = ocp.solve(solver='acados', acados_dir={"/home/fb/devel/acados"}, options_acados={'print_level' :1, 'nlp_solver_tol_comp' : 1e-06})
 
     sol = ocp.solve()
     data_sol_ipopt = Data.get_data(ocp, sol, concatenate=False)
@@ -93,5 +93,6 @@ if __name__ == "__main__":
 
     result_acados = ShowResult(ocp,data_sol_acados)
     result_acados.graphs()
-    result_acados.animate()
+    result.graphs()
+    # result_acados.animate()
 
