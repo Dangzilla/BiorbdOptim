@@ -246,6 +246,7 @@ class OptimalControlProgram:
         nlp["x_SX"] = SX()
         nlp["u_SX"] = SX()
         nlp["J"] = []
+        nlp["J_acados_mayer"] = []
         nlp["g"] = []
         nlp["g_bounds"] = []
 
