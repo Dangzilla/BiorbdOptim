@@ -251,6 +251,7 @@ class OptimalControlProgram:
         nlp["g_bounds"] = []
         nlp["SX_func"] = []
 
+
     def __add_to_nlp(self, param_name, param, duplicate_if_size_is_one, _type=None):
         """Adds coupled parameters to the non linear problem"""
         if isinstance(param, (list, tuple)):
@@ -536,7 +537,7 @@ class OptimalControlProgram:
 
         nlp["plot"][plot_name] = custom_plot
 
-    def solve(self, solver="ipopt", show_online_optim=False, return_iterations=False, options_ipopt={}, options_acados={}, acados_dir={} ):
+    def solve(self, solver="ipopt", show_online_optim=False, return_iterations=False, solver_options={}, options_acados={}, acados_dir={} ):
         """
         Gives to CasADi states, controls, constraints, sum of all objective functions and theirs bounds.
         Gives others parameters to control how solver works.
@@ -561,6 +562,7 @@ class OptimalControlProgram:
         if return_iterations and not show_online_optim:
                 raise RuntimeError("return_iterations without show_online_optim is not implemented yet.")
 
+        # Dispatch the objective function values
         all_J = SX()
         for j_nodes in self.J:
             for j in j_nodes:
@@ -570,6 +572,7 @@ class OptimalControlProgram:
                 for obj in obj_nodes:
                     all_J = vertcat(all_J, obj)
 
+        #
         all_g = SX()
         all_g_bounds = Bounds(interpolation_type=InterpolationType.CONSTANT)
         for i in range(len(self.g)):
@@ -595,62 +598,71 @@ class OptimalControlProgram:
                 with open(file_path, "wb") as file:
                     pickle.dump([], file)
 
+
         if solver == "ipopt":
-            options = {
-                "ipopt.tol": 1e-6,
-                "ipopt.max_iter": 1000,
-                "ipopt.hessian_approximation": "exact",  # "exact", "limited-memory"
-                "ipopt.limited_memory_max_history": 50,
-                "ipopt.linear_solver": "mumps",  # "ma57", "ma86", "mumps"
-            }
-            for key in options_ipopt:
-                ipopt_key = key
-                if key[:6] != "ipopt.":
-                    ipopt_key = "ipopt." + key
-                options[ipopt_key] = options_ipopt[key]
-            opts = {**options, **options_common}
-            solver = casadi.nlpsol('nlpsol', solver, nlp, opts)
+            from .ipopt_interface import IpoptInterface
+            solver_ocp = IpoptInterface()
+            # options = {
+            #     "ipopt.tol": 1e-6,
+            #     "ipopt.max_iter": 1000,
+            #     "ipopt.hessian_approximation": "exact",  # "exact", "limited-memory"
+            #     "ipopt.limited_memory_max_history": 50,
+            #     "ipopt.linear_solver": "mumps",  # "ma57", "ma86", "mumps"
+            # }
+            # for key in options_ipopt:
+            #     ipopt_key = key
+            #     if key[:6] != "ipopt.":
+            #         ipopt_key = "ipopt." + key
+            #     options[ipopt_key] = options_ipopt[key]
+            # opts = {**options, **options_common}
+            # solver = casadi.nlpsol('nlpsol', solver, nlp, opts)
 
         elif solver == "acados":
-
-            acados_ocp.solver_options.qp_solver = 'PARTIAL_CONDENSING_HPIPM'  # FULL_CONDENSING_QPOASES
-            acados_ocp.solver_options.hessian_approx = 'GAUSS_NEWTON'
-            acados_ocp.solver_options.integrator_type = 'ERK'
-            acados_ocp.solver_options.nlp_solver_type = 'SQP'
-
-            acados_ocp.solver_options.nlp_solver_tol_comp = 1e-02
-            acados_ocp.solver_options.nlp_solver_tol_eq = 1e-02
-            acados_ocp.solver_options.nlp_solver_tol_ineq = 1e-02
-            acados_ocp.solver_options.nlp_solver_tol_stat = 1e-02
-            acados_ocp.solver_options.sim_method_newton_iter = 5
-            acados_ocp.solver_options.sim_method_num_stages = 4
-            acados_ocp.solver_options.sim_method_num_steps = 10
-            acados_ocp.solver_options.print_level = 1
-
-            for key in options_acados:
-                setattr(acados_ocp.solver_options, key, options_acados[key])
-
-            ocp_solver = AcadosOcpSolver(acados_ocp, json_file='acados_ocp.json')
-            ocp_solver.solve()
-            acados_x = np.array([ocp_solver.get(i, 'x') for i in range(self.nlp[0]['ns'] + 1)]).T
-            acados_q = acados_x[ :self.nlp[0]['nu'], :]
-            acados_qdot = acados_x[self.nlp[0]['nu']:, : ]
-            acados_u = np.array([ocp_solver.get(i, 'u') for i in range(self.nlp[0]['ns'])]).T
-
-            out={'qqdot': acados_x, 'x': [], 'u' : acados_u, 'time_tot' : ocp_solver.get_stats('time_tot')[0],}
-            for i in range(self.nlp[0]['ns']):
-                out['x'] = vertcat(out['x'], acados_q[:, i])
-                out['x'] = vertcat(out['x'], acados_qdot[:, i])
-                out['x'] = vertcat(out['x'], acados_u[:, i])
-
-            out['x'] = vertcat(out['x'], acados_q[:, self.nlp[0]['ns'] ])
-            out['x'] = vertcat(out['x'], acados_qdot[:, self.nlp[0]['ns']])
-
-            return out
+            from .acados_interface import AcadosInterface
+            solver_ocp = AcadosInterface(self)
+            # acados_ocp.solver_options.qp_solver = 'PARTIAL_CONDENSING_HPIPM'  # FULL_CONDENSING_QPOASES
+            # acados_ocp.solver_options.hessian_approx = 'GAUSS_NEWTON'
+            # acados_ocp.solver_options.integrator_type = 'ERK'
+            # acados_ocp.solver_options.nlp_solver_type = 'SQP'
+            #
+            # acados_ocp.solver_options.nlp_solver_tol_comp = 1e-02
+            # acados_ocp.solver_options.nlp_solver_tol_eq = 1e-02
+            # acados_ocp.solver_options.nlp_solver_tol_ineq = 1e-02
+            # acados_ocp.solver_options.nlp_solver_tol_stat = 1e-02
+            # acados_ocp.solver_options.sim_method_newton_iter = 5
+            # acados_ocp.solver_options.sim_method_num_stages = 4
+            # acados_ocp.solver_options.sim_method_num_steps = 10
+            # acados_ocp.solver_options.print_level = 1
+            #
+            # for key in options_acados:
+            #     setattr(acados_ocp.solver_options, key, options_acados[key])
+            #
+            # ocp_solver = AcadosOcpSolver(acados_ocp, json_file='acados_ocp.json')
+            # ocp_solver.solve()
+            # acados_x = np.array([ocp_solver.get(i, 'x') for i in range(self.nlp[0]['ns'] + 1)]).T
+            # acados_q = acados_x[ :self.nlp[0]['nu'], :]
+            # acados_qdot = acados_x[self.nlp[0]['nu']:, : ]
+            # acados_u = np.array([ocp_solver.get(i, 'u') for i in range(self.nlp[0]['ns'])]).T
+            #
+            # out={'qqdot': acados_x, 'x': [], 'u' : acados_u, 'time_tot' : ocp_solver.get_stats('time_tot')[0],}
+            # for i in range(self.nlp[0]['ns']):
+            #     out['x'] = vertcat(out['x'], acados_q[:, i])
+            #     out['x'] = vertcat(out['x'], acados_qdot[:, i])
+            #     out['x'] = vertcat(out['x'], acados_u[:, i])
+            #
+            # out['x'] = vertcat(out['x'], acados_q[:, self.nlp[0]['ns'] ])
+            # out['x'] = vertcat(out['x'], acados_qdot[:, self.nlp[0]['ns']])
+            #
+            # return out
 
         else:
             raise RuntimeError("Available solvers are: 'ipopt' and 'acados'")
 
+        solver_ocp.configure(solver_options)
+        solver_ocp.solve()
+        if return_iterations:
+            solver_ocp.get_iterations()
+        return solver_ocp.get_optimized_value()
 
         # Bounds and initial guess
         arg = {
